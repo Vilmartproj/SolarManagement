@@ -29,6 +29,12 @@ function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
 function nextId(list) { return list.length ? Math.max(...list.map((i) => i.id)) + 1 : 1; }
 
 function initStore() {
+  // Reset projects if they lack the 'village' field (data upgrade)
+  const existingProjects = load(STORE.projects, []);
+  if (existingProjects.length && !existingProjects[0].village) {
+    save(STORE.projects, demoProjects);
+  }
+
   if (!localStorage.getItem(STORE.projects)) save(STORE.projects, demoProjects);
   if (!localStorage.getItem(STORE.invoices)) save(STORE.invoices, demoInvoices);
   if (!localStorage.getItem(STORE.inventory)) save(STORE.inventory, demoInventory);
@@ -143,13 +149,43 @@ function handleProjects(method, path, body, params) {
   const idMatch = path.match(/^\/projects\/(\d+)$/);
 
   if (path === '/projects/dashboard' && method === 'get') {
+    const maintenance = load(STORE.maintenance, demoMaintenance);
     return ok({
       totalProjects: projects.length,
       activeProjects: projects.filter((p) => p.status === 'in_progress').length,
       completedProjects: projects.filter((p) => p.status === 'completed').length,
       totalRevenue: projects.reduce((s, p) => s + Number(p.project_cost || 0), 0),
-      pendingMaintenance: load(STORE.maintenance, demoMaintenance).filter((m) => m.status === 'pending').length,
+      pendingMaintenance: maintenance.filter((m) => m.status === 'pending').length,
       lowStockItems: load(STORE.inventory, demoInventory).filter((i) => i.quantity <= i.min_stock_level).length,
+      // --- chart data ---
+      projectsByVillage: Object.entries(
+        projects.reduce((acc, p) => { const v = p.village || 'Unknown'; acc[v] = (acc[v] || 0) + 1; return acc; }, {})
+      ).map(([village, count]) => ({ village, count })).sort((a, b) => b.count - a.count),
+
+      projectsByMonth: (() => {
+        const months = {};
+        projects.forEach((p) => {
+          const d = p.start_date || p.created_at;
+          if (d) { const key = d.slice(0, 7); months[key] = (months[key] || 0) + 1; }
+        });
+        return Object.entries(months).sort(([a], [b]) => a.localeCompare(b)).map(([month, count]) => ({ month, count }));
+      })(),
+
+      projectsByStatus: Object.entries(
+        projects.reduce((acc, p) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {})
+      ).map(([status, count]) => ({ status, count })),
+
+      maintenanceByType: Object.entries(
+        maintenance.reduce((acc, m) => { const t = m.issue_type || 'other'; acc[t] = (acc[t] || 0) + 1; return acc; }, {})
+      ).map(([type, count]) => ({ type, count })),
+
+      maintenanceByStatus: Object.entries(
+        maintenance.reduce((acc, m) => { acc[m.status] = (acc[m.status] || 0) + 1; return acc; }, {})
+      ).map(([status, count]) => ({ status, count })),
+
+      maintenanceByPriority: Object.entries(
+        maintenance.reduce((acc, m) => { acc[m.priority] = (acc[m.priority] || 0) + 1; return acc; }, {})
+      ).map(([priority, count]) => ({ priority, count })),
     });
   }
 
@@ -323,7 +359,13 @@ function handleMaintenance(method, path, body, params) {
 
 // ── Main router ──
 function route(method, url, body, params) {
-  const path = url.replace(/^\/api/, '');
+  // Strip query string from path and merge into params
+  const [rawPath, qs] = url.replace(/^\/api/, '').split('?');
+  const path = rawPath;
+  if (qs) {
+    const sp = new URLSearchParams(qs);
+    sp.forEach((v, k) => { if (!(k in params)) params[k] = v; });
+  }
 
   return (
     handleAuth(method, path, body) ||
