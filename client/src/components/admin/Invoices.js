@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../utils/api';
+import Logo from '../shared/Logo';
 
 const emptyItem = { description: '', quantity: 1, unit_price: '' };
 
@@ -264,7 +265,7 @@ export default function Invoices() {
             <div className="invoice-preview">
               <div className="invoice-header">
                 <div>
-                  <h2 style={{ color: '#1e3a5f' }}>☀️ Solar Management</h2>
+                  <h2 style={{ color: '#1e3a5f' }}><Logo size={28} /> Cheriesh Power Technologies</h2>
                   <p style={{ color: '#64748b', fontSize: 14 }}>Solar Installation & Maintenance</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>

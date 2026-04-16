@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Logo, { LogoEditButton } from './Logo';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -12,12 +13,14 @@ export default function Sidebar() {
   };
 
   const isAdmin = user?.role === 'admin';
+  const isDev = user?.email === 'dev@solar.com';
   const isTechnician = user?.role === 'electrician' || user?.role === 'dwaraka';
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h2><span className="sun-icon">☀️</span> Solar Manager</h2>
+        <h2><Logo size={28} /> Cheriesh Power</h2>
+        {isDev && <LogoEditButton />}
       </div>
 
       <div className="sidebar-user">

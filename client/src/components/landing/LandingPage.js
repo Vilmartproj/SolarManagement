@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Logo from '../shared/Logo';
 import './LandingPage.css';
 
 const STORAGE_KEY = 'solart_landing_content';
@@ -65,7 +66,7 @@ const defaultContent = {
     title: 'Ready to Go Solar?',
     subtitle: 'Get a free site survey and custom solar proposal. Our team will design the perfect system for your needs.',
     phone: '+91 98765 43210',
-    email: 'info@solart.in',
+    email: 'info@cherieshpower.in',
     address: 'Plot 42, Jubilee Hills',
     city: 'Hyderabad, Telangana 500033',
   },
@@ -202,7 +203,7 @@ export default function LandingPage() {
       <nav className={`landing-nav ${scrolled ? 'nav-scrolled' : ''}`}>
         <div className="nav-container">
           <a href="#hero" className="nav-logo" onClick={() => scrollTo('#hero')}>
-            ☀️ <span>SolarT</span>
+            <Logo size={30} /> <span>Cheriesh Power Technologies</span>
           </a>
 
           <div className={`nav-menu ${mobileMenu ? 'open' : ''}`}>
@@ -407,7 +408,7 @@ export default function LandingPage() {
         <div className="footer-container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <h3>☀️ SolarT</h3>
+              <h3><Logo size={24} /> Cheriesh Power Technologies</h3>
               <p>End-to-end solar solutions for homes, businesses, and institutions. Partnered with Dwaraka Group for maintenance excellence.</p>
             </div>
             <div>
@@ -433,7 +434,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>© 2026 SolarT. All rights reserved. | Powered by Clean Energy</p>
+            <p>© 2026 Cheriesh Power Technologies. All rights reserved. | Powered by Clean Energy</p>
           </div>
         </div>
       </footer>

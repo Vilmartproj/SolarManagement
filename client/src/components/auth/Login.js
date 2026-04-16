@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Logo from '../shared/Logo';
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -43,8 +44,8 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="sun-logo">☀️</div>
-        <h1>Solar Management</h1>
+        <div className="sun-logo"><Logo size={100} /></div>
+        <h1>Cheriesh Power Technologies</h1>
         <p className="subtitle">{isRegister ? 'Create your account' : 'Sign in to your account'}</p>
 
         {error && <div className="error-message">{error}</div>}
