@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import Logo from '../shared/Logo';
+import Logo, { LogoEditButton } from '../shared/Logo';
 import './LandingPage.css';
 
 const STORAGE_KEY = 'solart_landing_content';
@@ -10,7 +10,7 @@ const menuItems = [
   { label: 'Home', href: '#hero' },
   { label: 'Services', href: '#services' },
   { label: 'Trends', href: '#trends' },
-  { label: 'Why Solar', href: '#why-solar' },
+  // { label: 'Why Solar', href: '#why-solar' },
   { label: 'Projects', href: '#projects' },
   { label: 'Testimonials', href: '#testimonials' },
   { label: 'Contact', href: '#contact' },
@@ -156,6 +156,7 @@ export default function LandingPage() {
 
   const isLoggedIn = !!user;
   const isAdmin = user?.role === 'admin';
+  const isDev = user?.email === 'dev@solar.com';
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -203,8 +204,13 @@ export default function LandingPage() {
       <nav className={`landing-nav ${scrolled ? 'nav-scrolled' : ''}`}>
         <div className="nav-container">
           <a href="#hero" className="nav-logo" onClick={() => scrollTo('#hero')}>
-            <Logo size={30} /> <span>Cheriesh Power Technologies</span>
+            <Logo size={100} />
+            <span className="nav-brand-text">
+              <span className="nav-brand-name">Cheriesh</span>
+              <span className="nav-brand-sub">Power Technologies</span>
+            </span>
           </a>
+          {isDev && <LogoEditButton />}
 
           <div className={`nav-menu ${mobileMenu ? 'open' : ''}`}>
             {menuItems.map((item) => (
