@@ -9,7 +9,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const isAdmin = user?.role === 'admin';
@@ -29,11 +29,13 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end>
-          <span className="nav-icon">🏠</span> Home
-        </NavLink>
+        {isAdmin && (
+          <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end>
+            <span className="nav-icon">🏠</span> Home
+          </NavLink>
+        )}
 
-        {!isTechnician && (
+        {isAdmin && (
           <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon">📊</span> Dashboard
           </NavLink>

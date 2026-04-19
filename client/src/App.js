@@ -22,12 +22,12 @@ export default function App() {
 
           {/* Protected routes (any authenticated user) */}
           <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/maintenance" element={<Maintenance />} />
 
             {/* Admin-only routes */}
             <Route element={<AdminRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/invoices" element={<Invoices />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/employees" element={<Employees />} />

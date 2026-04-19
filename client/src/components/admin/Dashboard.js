@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 
@@ -67,9 +68,15 @@ function formatMonth(str) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentProjects, setRecentProjects] = useState([]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,7 +98,13 @@ export default function Dashboard() {
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <span style={{ color: '#64748b' }}>Welcome back, {user?.name}!</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ color: '#64748b' }}>Welcome back, {user?.name}!</span>
+          <button className="btn btn-outline btn-sm" onClick={handleLogout}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            🚪 Logout
+          </button>
+        </div>
       </div>
 
       {/* ── Summary Stat Cards ── */}

@@ -12,8 +12,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   if (user) {
+    if (user.role === 'admin') return <Navigate to="/dashboard" />;
     const techRoles = ['electrician', 'dwaraka'];
-    return <Navigate to={techRoles.includes(user.role) ? '/maintenance' : '/dashboard'} />;
+    return <Navigate to={techRoles.includes(user.role) ? '/maintenance' : '/projects'} />;
   }
 
   const handleChange = (e) => {
@@ -33,8 +34,11 @@ export default function Login() {
         setForm({ name: '', email: '', password: '', phone: '' });
       } else {
         const u = await login(form.email, form.password);
-        const techRoles = ['electrician', 'dwaraka'];
-        navigate(techRoles.includes(u.role) ? '/maintenance' : '/dashboard');
+        if (u.role === 'admin') navigate('/dashboard');
+        else {
+          const techRoles = ['electrician', 'dwaraka'];
+          navigate(techRoles.includes(u.role) ? '/maintenance' : '/projects');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
@@ -98,13 +102,15 @@ export default function Login() {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
-          {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
-            style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontWeight: 600 }}
-          >
-            {isRegister ? 'Login' : 'Register'}
-          </button>
+          {isRegister ? 'Already have an account?' : ''}{' '}
+          {isRegister && (
+            <button
+              onClick={() => { setIsRegister(false); setError(''); setSuccess(''); }}
+              style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Login
+            </button>
+          )}
         </p>
 
         {!isRegister && (

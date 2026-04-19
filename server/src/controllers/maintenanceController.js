@@ -5,14 +5,16 @@ exports.createRequest = async (req, res) => {
     const {
       project_id, issue_type, description, priority,
       assigned_to, electrician_name, electrician_phone, scheduled_date,
+      amount, payment_status,
     } = req.body;
 
     const [result] = await pool.query(
       `INSERT INTO maintenance_requests (project_id, requested_by, issue_type, description,
-        priority, assigned_to, electrician_name, electrician_phone, scheduled_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        priority, assigned_to, electrician_name, electrician_phone, scheduled_date, amount, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [project_id, req.user.id, issue_type, description,
-        priority || 'medium', assigned_to, electrician_name, electrician_phone, scheduled_date]
+        priority || 'medium', assigned_to, electrician_name, electrician_phone, scheduled_date,
+        amount || null, payment_status || 'unpaid']
     );
 
     res.status(201).json({ message: 'Maintenance request created', requestId: result.insertId });
@@ -80,20 +82,54 @@ exports.updateRequest = async (req, res) => {
     const {
       status, assigned_to, electrician_name, electrician_phone,
       scheduled_date, completed_date, resolution_notes, priority,
+      amount, payment_status,
     } = req.body;
 
     const [result] = await pool.query(
       `UPDATE maintenance_requests SET status=?, assigned_to=?, electrician_name=?,
-        electrician_phone=?, scheduled_date=?, completed_date=?, resolution_notes=?, priority=?
+        electrician_phone=?, scheduled_date=?, completed_date=?, resolution_notes=?, priority=?,
+        amount=?, payment_status=?
        WHERE id=?`,
       [status, assigned_to, electrician_name, electrician_phone,
-        scheduled_date, completed_date, resolution_notes, priority, req.params.id]
+        scheduled_date, completed_date, resolution_notes, priority,
+        amount || null, payment_status || 'unpaid', req.params.id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Request not found' });
     }
     res.json({ message: 'Request updated' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+exports.uploadPhotos = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const files = req.files || [];
+    if (files.length === 0) {
+      return res.status(400).json({ message: 'No photos uploaded' });
+    }
+
+    const photo_1 = files[0] ? `/uploads/maintenance/${files[0].filename}` : null;
+    const photo_2 = files[1] ? `/uploads/maintenance/${files[1].filename}` : null;
+
+    const updates = [];
+    const params = [];
+    if (photo_1) { updates.push('photo_1 = ?'); params.push(photo_1); }
+    if (photo_2) { updates.push('photo_2 = ?'); params.push(photo_2); }
+    params.push(id);
+
+    const [result] = await pool.query(
+      `UPDATE maintenance_requests SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+    res.json({ message: 'Photos uploaded', photo_1, photo_2 });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

@@ -35,6 +35,12 @@ function initStore() {
     save(STORE.projects, demoProjects);
   }
 
+  // Reset maintenance if it lacks the 'amount' field (data upgrade)
+  const existingMaint = load(STORE.maintenance, []);
+  if (existingMaint.length && existingMaint[0].amount === undefined) {
+    save(STORE.maintenance, demoMaintenance);
+  }
+
   if (!localStorage.getItem(STORE.projects)) save(STORE.projects, demoProjects);
   if (!localStorage.getItem(STORE.invoices)) save(STORE.invoices, demoInvoices);
   if (!localStorage.getItem(STORE.inventory)) save(STORE.inventory, demoInventory);
@@ -67,6 +73,12 @@ function initStore() {
   }
 }
 
+function getCurrentUser() {
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+}
 function ok(data) { return { data, status: 200 }; }
 function err(status, message) { const e = new Error(message); e.response = { status, data: { message } }; throw e; }
 
@@ -191,6 +203,11 @@ function handleProjects(method, path, body, params) {
 
   if (path === '/projects' && method === 'get') {
     let list = [...projects];
+    // Non-admin users only see their own projects
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.role !== 'admin') {
+      list = list.filter((p) => p.created_by === currentUser.id);
+    }
     if (params?.status) list = list.filter((p) => p.status === params.status);
     if (params?.search) {
       const s = params.search.toLowerCase();
@@ -200,7 +217,8 @@ function handleProjects(method, path, body, params) {
   }
 
   if (path === '/projects' && method === 'post') {
-    const p = { ...body, id: nextId(projects), created_at: new Date().toISOString(), created_by: 1 };
+    const currentUser = getCurrentUser();
+    const p = { ...body, id: nextId(projects), created_at: new Date().toISOString(), created_by: currentUser?.id || 1 };
     projects.push(p);
     save(STORE.projects, projects);
     return ok(p);
@@ -314,26 +332,40 @@ function handleInventory(method, path, body, params) {
 
 function handleMaintenance(method, path, body, params) {
   let maintenance = load(STORE.maintenance, demoMaintenance);
-  const idMatch = path.match(/^\/maintenance\/(\d+)$/);
+  const idMatch = path.match(/^\/maintenance\/(\d+)(\/photos)?$/);
 
   if (path === '/maintenance' && method === 'get') {
     let list = [...maintenance];
+    // Non-admin, non-technician users only see their own maintenance requests
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'electrician' && currentUser.role !== 'dwaraka') {
+      list = list.filter((m) => m.created_by === currentUser.id);
+    }
     if (params?.status) list = list.filter((m) => m.status === params.status);
     if (params?.priority) list = list.filter((m) => m.priority === params.priority);
     if (params?.assigned_to) list = list.filter((m) => m.assigned_to === params.assigned_to);
-    // Technician role filtering: electrician sees only local_electrician, dwaraka sees only dwaraka_group
-    if (params?.tech_role === 'electrician') list = list.filter((m) => m.assigned_to === 'local_electrician');
-    if (params?.tech_role === 'dwaraka') list = list.filter((m) => m.assigned_to === 'dwaraka_group');
+    // Technician role filtering: only see their own assignments (by name)
+    if (params?.tech_role === 'electrician' || params?.tech_role === 'dwaraka') {
+      const techUser = getCurrentUser();
+      if (techUser) {
+        list = list.filter((m) => m.electrician_name === techUser.name);
+      }
+    }
     return ok(list);
   }
 
   if (path === '/maintenance' && method === 'post') {
     const projects = load(STORE.projects, demoProjects);
     const proj = projects.find((p) => p.id === Number(body.project_id));
+    const currentUser = getCurrentUser();
     const m = {
       ...body, id: nextId(maintenance),
       project_name: proj?.project_name || '',
-      created_by_name: 'Demo User',
+      created_by: currentUser?.id || 1,
+      created_by_name: currentUser?.name || 'Demo User',
+      amount: body.amount || null,
+      payment_status: body.payment_status || 'unpaid',
+      photo_1: null, photo_2: null,
       created_at: new Date().toISOString(),
     };
     maintenance.push(m);
@@ -346,6 +378,21 @@ function handleMaintenance(method, path, body, params) {
     maintenance = maintenance.map((m) => (m.id === id ? { ...m, ...body } : m));
     save(STORE.maintenance, maintenance);
     return ok(maintenance.find((m) => m.id === id));
+  }
+
+  // Photo upload (mock — store as data URLs)
+  if (idMatch && method === 'post' && path.endsWith('/photos')) {
+    const id = Number(idMatch[1]);
+    // In demo mode, photos come via FormData; we just mark them as uploaded
+    const target = maintenance.find((m) => m.id === id);
+    if (target) {
+      // Placeholder — real files can’t be stored in localStorage easily
+      target.photo_1 = target.photo_1 || 'demo-photo';
+      target.photo_2 = target.photo_2 || null;
+      maintenance = maintenance.map((m) => (m.id === id ? target : m));
+      save(STORE.maintenance, maintenance);
+    }
+    return ok({ message: 'Photos uploaded (demo)' });
   }
 
   if (idMatch && method === 'delete') {

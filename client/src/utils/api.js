@@ -4,7 +4,7 @@ import { installMockApi } from './mockApi';
 const DEMO_MODE = !process.env.REACT_APP_USE_BACKEND;
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'http://localhost:5001/api',
   headers: { 'Content-Type': 'application/json' },
 });
 

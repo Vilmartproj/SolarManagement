@@ -16,6 +16,7 @@ const emptyRequest = {
   priority: 'medium', assigned_to: '', electrician_name: '',
   electrician_phone: '', scheduled_date: '', status: 'pending',
   completed_date: '', resolution_notes: '',
+  amount: '', payment_status: 'unpaid',
 };
 
 export default function Maintenance() {
@@ -27,6 +28,10 @@ export default function Maintenance() {
   const [form, setForm] = useState(emptyRequest);
   const [filter, setFilter] = useState({ status: '', priority: '', assigned_to: '' });
   const [error, setError] = useState('');
+  const [photos, setPhotos] = useState([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState([]);
+  const [viewPhotos, setViewPhotos] = useState(null);
+  const [technicians, setTechnicians] = useState([]);
   const isAdmin = user?.role === 'admin';
   const isTechnician = user?.role === 'electrician' || user?.role === 'dwaraka';
 
@@ -53,25 +58,51 @@ export default function Maintenance() {
     } catch (err) { console.error(err); }
   };
 
+  const fetchTechnicians = async () => {
+    try {
+      const res = await api.get('/auth/users');
+      setTechnicians(res.data.filter(u => u.role === 'electrician' || u.role === 'dwaraka'));
+    } catch (err) { console.error(err); }
+  };
+
+  // Map assigned_to value to user role
+  const roleForAssignedTo = (assigned) => {
+    if (assigned === 'local_electrician') return 'electrician';
+    if (assigned === 'dwaraka_group') return 'dwaraka';
+    return null;
+  };
+
+  const filteredTechnicians = form.assigned_to
+    ? technicians.filter(t => t.role === roleForAssignedTo(form.assigned_to))
+    : [];
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const openCreate = () => {
     fetchProjects();
+    fetchTechnicians();
     setEditing(null);
     setForm(emptyRequest);
+    setPhotos([]);
+    setPhotoPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
 
   const openEdit = (req) => {
     fetchProjects();
+    fetchTechnicians();
     setEditing(req.id);
     setForm({
       ...req,
       scheduled_date: req.scheduled_date ? req.scheduled_date.split('T')[0] : '',
       completed_date: req.completed_date ? req.completed_date.split('T')[0] : '',
       assigned_to: req.assigned_to || '',
+      amount: req.amount || '',
+      payment_status: req.payment_status || 'unpaid',
     });
+    setPhotos([]);
+    setPhotoPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
@@ -82,7 +113,11 @@ export default function Maintenance() {
       ...req,
       scheduled_date: req.scheduled_date ? req.scheduled_date.split('T')[0] : '',
       completed_date: req.completed_date ? req.completed_date.split('T')[0] : '',
+      amount: req.amount || '',
+      payment_status: req.payment_status || 'unpaid',
     });
+    setPhotos([]);
+    setPhotoPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
@@ -93,6 +128,30 @@ export default function Maintenance() {
     try {
       if (editing) {
         await api.put(`/maintenance/${editing}`, form);
+        // Upload photos if selected (technician)
+        if (photos.length > 0) {
+          // Convert to data URLs for demo mode compatibility
+          const toDataURL = (file) => new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+          const dataUrls = await Promise.all(photos.map(toDataURL));
+          // Update record with photo data URLs directly (works in demo + backend)
+          await api.put(`/maintenance/${editing}`, {
+            ...form,
+            photo_1: dataUrls[0] || form.photo_1 || null,
+            photo_2: dataUrls[1] || form.photo_2 || null,
+          });
+          // Also try the dedicated upload endpoint for real backend
+          try {
+            const formData = new FormData();
+            photos.forEach((p) => formData.append('photos', p));
+            await api.post(`/maintenance/${editing}/photos`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+          } catch (_) { /* ignore if mock mode */ }
+        }
       } else {
         await api.post('/maintenance', form);
       }
@@ -154,12 +213,14 @@ export default function Maintenance() {
           <option value="high">High</option>
           <option value="urgent">Urgent</option>
         </select>
-        <select className="form-control" value={filter.assigned_to}
-          onChange={(e) => setFilter({ ...filter, assigned_to: e.target.value })}>
-          <option value="">All Teams</option>
-          <option value="local_electrician">Local Electrician</option>
-          <option value="dwaraka_group">Dwaraka Group</option>
-        </select>
+        {!isTechnician && (
+          <select className="form-control" value={filter.assigned_to}
+            onChange={(e) => setFilter({ ...filter, assigned_to: e.target.value })}>
+            <option value="">All Teams</option>
+            <option value="local_electrician">Local Electrician</option>
+            <option value="dwaraka_group">Dwaraka Group</option>
+          </select>
+        )}
       </div>
 
       <div className="card">
@@ -172,6 +233,8 @@ export default function Maintenance() {
                 <th>Issue Type</th>
                 <th>Priority</th>
                 {!isTechnician && <th>Assigned To</th>}
+                <th>Amount</th>
+                <th>Payment</th>
                 <th>Status</th>
                 <th>Scheduled</th>
                 {isAdmin && <th>Requested By</th>}
@@ -180,7 +243,7 @@ export default function Maintenance() {
             </thead>
             <tbody>
               {requests.length === 0 ? (
-                <tr><td colSpan={isAdmin ? 9 : (isTechnician ? 7 : 8)} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No maintenance requests</td></tr>
+                <tr><td colSpan={isAdmin ? 11 : (isTechnician ? 9 : 10)} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No maintenance requests</td></tr>
               ) : (
                 requests.map((req) => (
                   <tr key={req.id}>
@@ -196,6 +259,12 @@ export default function Maintenance() {
                         {req.electrician_name && <div style={{ fontSize: 12, color: '#64748b' }}>{req.electrician_name}</div>}
                       </td>
                     )}
+                    <td>{req.amount ? `₹${Number(req.amount).toLocaleString()}` : '-'}</td>
+                    <td>
+                      {req.payment_status === 'paid'
+                        ? <span className="badge badge-completed">Paid</span>
+                        : <span className="badge badge-pending">{req.amount ? 'Unpaid' : '-'}</span>}
+                    </td>
                     <td><span className={`badge badge-${req.status}`}>{req.status.replace('_', ' ')}</span></td>
                     <td>{req.scheduled_date ? new Date(req.scheduled_date).toLocaleDateString() : '-'}</td>
                     {isAdmin && <td>{req.requested_by_name}</td>}
@@ -207,6 +276,10 @@ export default function Maintenance() {
                           <button className="btn btn-outline btn-sm" onClick={() => openEdit(req)}>
                             {isAdmin ? 'Manage' : 'Edit'}
                           </button>
+                        )}
+                        {isAdmin && (req.photo_1 || req.photo_2) && (
+                          <button className="btn btn-outline btn-sm" onClick={() => setViewPhotos(req)}
+                            title="View Photos">📷</button>
                         )}
                         {isAdmin && (
                           <button className="btn btn-danger btn-sm" onClick={() => handleDelete(req.id)}>🗑️</button>
@@ -279,6 +352,39 @@ export default function Maintenance() {
                         value={form.resolution_notes || ''} onChange={handleChange}
                         placeholder="Describe work done, parts replaced, etc." />
                     </div>
+                    {/* Amount & Payment — read-only for technician */}
+                    <div className="form-group">
+                      <label>Amount</label>
+                      <input type="text" className="form-control" value={form.amount ? `₹${Number(form.amount).toLocaleString()}` : 'Not set'} disabled />
+                    </div>
+                    <div className="form-group">
+                      <label>Payment Status</label>
+                      <input type="text" className="form-control" value={form.payment_status === 'paid' ? 'Paid' : 'Unpaid'} disabled />
+                    </div>
+                    {/* Photo Upload — max 2 */}
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>Upload Photos (max 2)</label>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+                        className="form-control"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files).slice(0, 2);
+                          setPhotos(files);
+                          setPhotoPreviewUrls(files.map(f => URL.createObjectURL(f)));
+                        }} />
+                      {photoPreviewUrls.length > 0 && (
+                        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                          {photoPreviewUrls.map((url, i) => (
+                            <img key={i} src={url} alt={`Preview ${i + 1}`}
+                              style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                          ))}
+                        </div>
+                      )}
+                      {(form.photo_1 || form.photo_2) && photoPreviewUrls.length === 0 && (
+                        <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
+                          {[form.photo_1, form.photo_2].filter(Boolean).length} photo(s) already uploaded
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -308,7 +414,10 @@ export default function Maintenance() {
                 </div>
                 <div className="form-group">
                   <label>Connect With *</label>
-                  <select name="assigned_to" className="form-control" value={form.assigned_to} onChange={handleChange}>
+                  <select name="assigned_to" className="form-control" value={form.assigned_to}
+                    onChange={(e) => {
+                      setForm({ ...form, assigned_to: e.target.value, electrician_name: '', electrician_phone: '' });
+                    }}>
                     <option value="">Select service provider</option>
                     <option value="local_electrician">⚡ Local Electrician</option>
                     <option value="dwaraka_group">🏢 Dwaraka Group</option>
@@ -335,14 +444,30 @@ export default function Maintenance() {
                     </div>
                     <div className="form-group">
                       <label>Electrician Name</label>
-                      <input type="text" name="electrician_name" className="form-control"
-                        value={form.electrician_name} onChange={handleChange}
-                        placeholder="Assigned technician name" />
+                      <select name="electrician_name" className="form-control"
+                        value={form.electrician_name}
+                        onChange={(e) => {
+                          const selected = filteredTechnicians.find(t => t.name === e.target.value);
+                          setForm({
+                            ...form,
+                            electrician_name: e.target.value,
+                            electrician_phone: selected?.phone || '',
+                          });
+                        }}>
+                        <option value="">Select technician</option>
+                        {filteredTechnicians.map(t => (
+                          <option key={t.id} value={t.name}>{t.name}</option>
+                        ))}
+                      </select>
+                      {!form.assigned_to && (
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Select "Connect With" first</div>
+                      )}
                     </div>
                     <div className="form-group">
                       <label>Electrician Phone</label>
                       <input type="tel" name="electrician_phone" className="form-control"
-                        value={form.electrician_phone} onChange={handleChange} />
+                        value={form.electrician_phone} readOnly
+                        style={{ background: '#f8fafc' }} />
                     </div>
                     <div className="form-group">
                       <label>Scheduled Date</label>
@@ -363,6 +488,33 @@ export default function Maintenance() {
                         </div>
                       </>
                     )}
+                    {/* Admin: Amount & Payment Status */}
+                    <div className="form-group">
+                      <label>Amount (₹)</label>
+                      <input type="number" name="amount" className="form-control"
+                        value={form.amount} onChange={handleChange}
+                        placeholder="e.g. 5000" min="0" step="0.01" />
+                    </div>
+                    <div className="form-group">
+                      <label>Payment Status</label>
+                      <select name="payment_status" className="form-control" value={form.payment_status} onChange={handleChange}>
+                        <option value="unpaid">Unpaid</option>
+                        <option value="paid">Paid</option>
+                      </select>
+                    </div>
+                    {/* Admin: View uploaded photos */}
+                    {editing && (form.photo_1 || form.photo_2) && (
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label>Uploaded Photos</label>
+                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                          {[form.photo_1, form.photo_2].filter(Boolean).map((url, i) => (
+                            <img key={i} src={url} alt={`Maintenance photo ${i + 1}`}
+                              style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                              onClick={() => window.open(url, '_blank')} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
                   </>
@@ -376,6 +528,25 @@ export default function Maintenance() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal (admin) */}
+      {viewPhotos && (
+        <div className="modal-overlay" onClick={() => setViewPhotos(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-header">
+              <h2>Photos — Request #{viewPhotos.id}</h2>
+              <button className="modal-close" onClick={() => setViewPhotos(null)}>×</button>
+            </div>
+            <div style={{ display: 'flex', gap: 16, padding: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {[viewPhotos.photo_1, viewPhotos.photo_2].filter(Boolean).map((url, i) => (
+                <img key={i} src={url} alt={`Photo ${i + 1}`}
+                  style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8, cursor: 'pointer' }}
+                  onClick={() => window.open(url, '_blank')} />
+              ))}
+            </div>
           </div>
         </div>
       )}
