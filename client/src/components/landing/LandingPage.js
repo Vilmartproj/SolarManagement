@@ -10,17 +10,29 @@ const menuItems = [
   { label: 'Home', href: '#hero' },
   { label: 'Services', href: '#services' },
   { label: 'Trends', href: '#trends' },
-  // { label: 'Why Solar', href: '#why-solar' },
   { label: 'Projects', href: '#projects' },
   { label: 'Testimonials', href: '#testimonials' },
   { label: 'Contact', href: '#contact' },
 ];
 
+/* Solar images from India — royalty-free via Unsplash */
+const IMAGES = {
+  heroMain: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1600&q=80',
+  heroOverlay: 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=1600&q=80',
+  residential: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80',
+  commercial: 'https://images.unsplash.com/photo-1624397640148-949b1732bb0a?w=600&q=80',
+  hospital: 'https://images.unsplash.com/photo-1559302504-64aae6ca6b6d?w=600&q=80',
+  panels1: 'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=600&q=80',
+  panels2: 'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=600&q=80',
+  worker: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80',
+  ctaBg: 'https://images.unsplash.com/photo-1497440001374-f26997328c1b?w=1600&q=80',
+};
+
 const defaultContent = {
   hero: {
-    badge: '🌍 Powering a Sustainable Future',
-    title: 'Harness the Power of Sun for Your Home & Business',
-    subtitle: 'End-to-end solar solutions — from design and installation to monitoring and maintenance. Trusted by 500+ customers across India.',
+    badge: '☀️ India\'s Trusted Solar Partner',
+    title: 'Powering India\'s Future with Clean Solar Energy',
+    subtitle: 'From rooftop installations in Hyderabad to large-scale solar farms across Telangana — end-to-end solar solutions trusted by 500+ customers.',
   },
   stats: [
     { value: '500+', label: 'Projects Completed' },
@@ -29,12 +41,12 @@ const defaultContent = {
     { value: '98%', label: 'Satisfaction Rate' },
   ],
   services: [
-    { icon: '🏠', title: 'Residential Solar', desc: 'Rooftop installations for homes with net metering and 25-year warranty panels.' },
-    { icon: '🏭', title: 'Commercial Solar', desc: 'Large-scale solar plants for factories, offices and commercial buildings.' },
-    { icon: '🔧', title: 'Maintenance & AMC', desc: 'Annual maintenance contracts with local electricians and Dwaraka Group.' },
-    { icon: '🔋', title: 'Battery Storage', desc: 'Hybrid & off-grid systems with lithium-ion battery backup solutions.' },
-    { icon: '📊', title: 'Energy Audit', desc: 'Complete energy consumption analysis and custom solar design.' },
-    { icon: '📋', title: 'Subsidy Assistance', desc: 'End-to-end help with government solar subsidies and documentation.' },
+    { icon: '🏠', title: 'Residential Solar', desc: 'Rooftop installations for homes with net metering and 25-year warranty panels.', image: IMAGES.residential },
+    { icon: '🏭', title: 'Commercial Solar', desc: 'Large-scale solar plants for factories, offices and commercial buildings.', image: IMAGES.commercial },
+    { icon: '🔧', title: 'Maintenance & AMC', desc: 'Annual maintenance contracts with local electricians and DWCRA Group.', image: IMAGES.worker },
+    { icon: '🔋', title: 'Battery Storage', desc: 'Hybrid & off-grid systems with lithium-ion battery backup solutions.', image: IMAGES.panels1 },
+    { icon: '📊', title: 'Energy Audit', desc: 'Complete energy consumption analysis and custom solar design.', image: IMAGES.panels2 },
+    { icon: '📋', title: 'Subsidy Assistance', desc: 'End-to-end help with government solar subsidies and documentation.', image: IMAGES.hospital },
   ],
   trends: [
     { tag: '2026 Trend', title: 'AI-Powered Solar Monitoring', desc: 'Machine learning algorithms now predict panel degradation, optimize tilt angles in real-time, and forecast energy generation with 98% accuracy.', image: '🤖' },
@@ -53,14 +65,14 @@ const defaultContent = {
     { title: 'Reduce Carbon Footprint', desc: 'A 5kW system prevents ~7 tonnes of CO₂ per year — equivalent to planting 350 trees annually.' },
   ],
   showcases: [
-    { icon: '🏠', tag: 'Residential', title: '10kW Rooftop — Hyderabad', desc: '20 Mono PERC panels with hybrid inverter and 10kWh lithium battery backup.', stat: 'Bill reduced: ₹6,500 → ₹150/month' },
-    { icon: '🏭', tag: 'Commercial', title: '100kW Solar Plant — Vizag', desc: 'Ground-mounted system for a textile factory with real-time monitoring dashboard.', stat: 'ROI achieved in 3.2 years' },
-    { icon: '🏥', tag: 'Institutional', title: '50kW + Battery — Hospital', desc: 'Critical backup for operation theaters with 20kWh storage and auto-switchover.', stat: 'Zero power cuts in 2 years' },
+    { tag: 'Residential', title: '10kW Rooftop — Hyderabad', desc: '20 Mono PERC panels with hybrid inverter and 10kWh lithium battery backup.', stat: 'Bill reduced: ₹6,500 → ₹150/month', image: IMAGES.residential },
+    { tag: 'Commercial', title: '100kW Solar Plant — Vizag', desc: 'Ground-mounted system for a textile factory with real-time monitoring dashboard.', stat: 'ROI achieved in 3.2 years', image: IMAGES.commercial },
+    { tag: 'Institutional', title: '50kW + Battery — Hospital', desc: 'Critical backup for operation theaters with 20kWh storage and auto-switchover.', stat: 'Zero power cuts in 2 years', image: IMAGES.hospital },
   ],
   testimonials: [
     { name: 'Rajesh Kumar', role: 'Homeowner, Hyderabad', text: 'Our electricity bill dropped from ₹8,000 to ₹200/month. The team handled everything from permits to installation seamlessly.' },
     { name: 'Priya Sharma', role: 'Factory Owner, Vizag', text: 'We installed 100kW on our factory roof. ROI came in 3.5 years instead of the projected 5. Excellent service and monitoring.' },
-    { name: 'Dr. Anand Rao', role: 'Hospital Director', text: 'The battery backup solution keeps our critical systems running 24/7. Maintenance team from Dwaraka Group responds within hours.' },
+    { name: 'Dr. Anand Rao', role: 'Hospital Director', text: 'The battery backup solution keeps our critical systems running 24/7. Maintenance team from DWCRA Group responds within hours.' },
   ],
   contact: {
     title: 'Ready to Go Solar?',
@@ -246,27 +258,20 @@ export default function LandingPage() {
 
       {/* ===== Hero ===== */}
       <section id="hero" className="hero-section">
-        <div className="hero-bg-shapes">
-          <div className="shape shape-1" />
-          <div className="shape shape-2" />
-          <div className="shape shape-3" />
-        </div>
+        <div className="hero-bg-image" style={{ backgroundImage: `url(${IMAGES.heroMain})` }} />
+        <div className="hero-bg-overlay" />
         <div className="hero-content">
           {isAdmin && <EditBtn onClick={() => openEdit('hero')} label="Hero" />}
           <span className="hero-badge">{content.hero.badge}</span>
-          <h1>
-            {content.hero.title.includes('Power of Sun')
-              ? <>Harness the <span className="text-gradient">Power of Sun</span> for Your Home & Business</>
-              : content.hero.title}
-          </h1>
+          <h1>{content.hero.title}</h1>
           <p>{content.hero.subtitle}</p>
           <div className="hero-buttons">
             <Link to={user ? '/projects' : '/login'} className="btn-landing btn-landing-primary">
-              Get Started →
+              Get Free Quote →
             </Link>
             <a href="#services" className="btn-landing btn-landing-outline"
               onClick={(e) => { e.preventDefault(); scrollTo('#services'); }}>
-              Explore Services
+              Our Services
             </a>
           </div>
           <div className="hero-stats">
@@ -284,15 +289,20 @@ export default function LandingPage() {
       <section id="services" className="section">
         <div className="section-container">
           {isAdmin && <EditBtn onClick={() => openEdit('services')} label="Services" />}
-          <span className="section-tag">What We Offer</span>
-          <h2 className="section-title">Complete Solar Solutions</h2>
-          <p className="section-subtitle">From rooftop installations to large-scale solar farms — we handle everything.</p>
+          <div className="section-header-center">
+            <span className="section-tag">What We Offer</span>
+            <h2 className="section-title">Complete Solar Solutions</h2>
+            <p className="section-subtitle-center">From rooftop installations to large-scale solar farms — we handle everything.</p>
+          </div>
           <div className="services-grid">
             {content.services.map((s, i) => (
               <div key={i} className="service-card">
-                <div className="service-icon">{s.icon}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
+                {s.image && <div className="service-card-img" style={{ backgroundImage: `url(${s.image})` }} />}
+                <div className="service-card-body">
+                  <div className="service-icon">{s.icon}</div>
+                  <h3>{s.title}</h3>
+                  <p>{s.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -303,11 +313,13 @@ export default function LandingPage() {
       <section id="trends" className="section section-dark">
         <div className="section-container">
           {isAdmin && <EditBtn onClick={() => openEdit('trends')} label="Trends" />}
-          <span className="section-tag tag-light">🔥 What's New in 2026</span>
-          <h2 className="section-title" style={{ color: 'white' }}>Solar Industry Trends</h2>
-          <p className="section-subtitle" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            The solar industry is evolving fast. Here are the breakthroughs shaping the future.
-          </p>
+          <div className="section-header-center">
+            <span className="section-tag tag-light">🔥 What's New in 2026</span>
+            <h2 className="section-title" style={{ color: 'white' }}>Solar Industry Trends</h2>
+            <p className="section-subtitle-center" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              The solar industry is evolving fast. Here are the breakthroughs shaping the future.
+            </p>
+          </div>
           <div className="trends-grid">
             {content.trends.map((t, i) => (
               <div key={i} className="trend-card">
@@ -325,8 +337,10 @@ export default function LandingPage() {
       <section id="why-solar" className="section">
         <div className="section-container">
           {isAdmin && <EditBtn onClick={() => openEdit('benefits')} label="Benefits" />}
-          <span className="section-tag">Why Go Solar?</span>
-          <h2 className="section-title">Benefits That Pay for Themselves</h2>
+          <div className="section-header-center">
+            <span className="section-tag">Why Go Solar?</span>
+            <h2 className="section-title">Benefits That Pay for Themselves</h2>
+          </div>
           <div className="benefits-grid">
             {content.benefits.map((b, i) => (
               <div key={i} className="benefit-card">
@@ -343,17 +357,21 @@ export default function LandingPage() {
       <section id="projects" className="section section-alt">
         <div className="section-container">
           {isAdmin && <EditBtn onClick={() => openEdit('showcases')} label="Projects" />}
-          <span className="section-tag">Our Work</span>
-          <h2 className="section-title">Recent Installations</h2>
+          <div className="section-header-center">
+            <span className="section-tag">Our Work</span>
+            <h2 className="section-title">Recent Installations</h2>
+          </div>
           <div className="projects-showcase">
             {content.showcases.map((s, i) => (
               <div key={i} className="showcase-card">
-                <div className="showcase-img">{s.icon}</div>
+                <div className="showcase-img" style={s.image ? { backgroundImage: `url(${s.image})` } : undefined}>
+                  {!s.image && s.icon}
+                </div>
                 <div className="showcase-info">
                   <span className="showcase-tag">{s.tag}</span>
                   <h3>{s.title}</h3>
                   <p>{s.desc}</p>
-                  <span className="showcase-stat">{s.stat}</span>
+                  <span className="showcase-stat">📈 {s.stat}</span>
                 </div>
               </div>
             ))}
@@ -365,8 +383,10 @@ export default function LandingPage() {
       <section id="testimonials" className="section">
         <div className="section-container">
           {isAdmin && <EditBtn onClick={() => openEdit('testimonials')} label="Testimonials" />}
-          <span className="section-tag">Client Stories</span>
-          <h2 className="section-title">What Our Customers Say</h2>
+          <div className="section-header-center">
+            <span className="section-tag">Client Stories</span>
+            <h2 className="section-title">What Our Customers Say</h2>
+          </div>
           <div className="testimonials-grid">
             {content.testimonials.map((t, i) => (
               <div key={i} className="testimonial-card">
@@ -387,10 +407,12 @@ export default function LandingPage() {
 
       {/* ===== Contact / CTA ===== */}
       <section id="contact" className="section section-cta">
-        <div className="section-container" style={{ textAlign: 'center' }}>
+        <div className="cta-bg-image" style={{ backgroundImage: `url(${IMAGES.ctaBg})` }} />
+        <div className="cta-bg-overlay" />
+        <div className="section-container" style={{ textAlign: 'center', position: 'relative', zIndex: 2 }}>
           {isAdmin && <EditBtn onClick={() => openEdit('contact')} label="Contact" />}
           <h2 style={{ fontSize: 36, color: 'white', marginBottom: 16 }}>{content.contact.title}</h2>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 18, maxWidth: 600, margin: '0 auto 32px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 18, maxWidth: 600, margin: '0 auto 32px' }}>
             {content.contact.subtitle}
           </p>
           <div className="cta-buttons">
@@ -415,7 +437,7 @@ export default function LandingPage() {
           <div className="footer-grid">
             <div className="footer-brand">
               <h3><Logo size={24} /> Cheriesh Power Technologies</h3>
-              <p>End-to-end solar solutions for homes, businesses, and institutions. Partnered with Dwaraka Group for maintenance excellence.</p>
+              <p>End-to-end solar solutions for homes, businesses, and institutions. Partnered with DWCRA Group for maintenance excellence.</p>
             </div>
             <div>
               <h4>Quick Links</h4>

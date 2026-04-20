@@ -338,14 +338,14 @@ function handleMaintenance(method, path, body, params) {
     let list = [...maintenance];
     // Non-admin, non-technician users only see their own maintenance requests
     const currentUser = getCurrentUser();
-    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'electrician' && currentUser.role !== 'dwaraka') {
+    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'electrician' && currentUser.role !== 'dwcra') {
       list = list.filter((m) => m.created_by === currentUser.id);
     }
     if (params?.status) list = list.filter((m) => m.status === params.status);
     if (params?.priority) list = list.filter((m) => m.priority === params.priority);
     if (params?.assigned_to) list = list.filter((m) => m.assigned_to === params.assigned_to);
     // Technician role filtering: only see their own assignments (by name)
-    if (params?.tech_role === 'electrician' || params?.tech_role === 'dwaraka') {
+    if (params?.tech_role === 'electrician' || params?.tech_role === 'dwcra') {
       const techUser = getCurrentUser();
       if (techUser) {
         list = list.filter((m) => m.electrician_name === techUser.name);

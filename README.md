@@ -6,7 +6,7 @@ A full-stack web application for managing solar installation projects, invoices,
 
 ### Employee Portal
 - **Project Entry** — Create and manage solar project details (customer info, system specs, timelines)
-- **Maintenance Requests** — Submit service requests and connect with Local Electricians or Dwaraka Group
+- **Maintenance Requests** — Submit service requests and connect with Local Electricians or DWCRA Group
 
 ### Admin Portal
 - **Dashboard** — Overview with KPIs: total projects, active installs, revenue, alerts

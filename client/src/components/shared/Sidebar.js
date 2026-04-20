@@ -14,18 +14,18 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const isAdmin = user?.role === 'admin';
   const isDev = user?.email === 'dev@solar.com';
-  const isTechnician = user?.role === 'electrician' || user?.role === 'dwaraka';
+  const isTechnician = user?.role === 'electrician' || user?.role === 'dwcra';
 
   return (
     <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
-      <div className="sidebar-header">
+      <div className="sidebar-header" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
         <h2><Logo size={28} /> Cheriesh Power</h2>
         {isDev && <LogoEditButton />}
       </div>
 
       <div className="sidebar-user">
         <div className="user-name">{user?.name}</div>
-        <div className="user-role">{user?.role === 'electrician' ? 'Local Electrician' : user?.role === 'dwaraka' ? 'Dwaraka Group' : user?.role}</div>
+        <div className="user-role">{user?.role === 'electrician' ? 'Local Electrician' : user?.role === 'dwcra' ? 'DWCRA Group' : user?.role}</div>
       </div>
 
       <nav className="sidebar-nav">

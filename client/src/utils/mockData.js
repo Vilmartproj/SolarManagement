@@ -5,17 +5,17 @@ export const demoUsers = [
   { id: 3, name: 'Sneha Reddy', email: 'sneha@solar.com', phone: '9876543212', role: 'employee' },
   { id: 4, name: 'Medha Dev', email: 'dev@solar.com', phone: '9876543213', role: 'admin' },
   { id: 5, name: 'Sunil Electricals', email: 'sunil@solar.com', phone: '9876543214', role: 'electrician' },
-  { id: 6, name: 'Dwaraka Group Service', email: 'dwaraka@solar.com', phone: '9876543215', role: 'dwaraka' },
+  { id: 6, name: 'DWCRA Group Service', email: 'dwcra@solar.com', phone: '9876543215', role: 'dwcra' },
 ];
 
-// passwords: admin123, ravi123, sneha123, dev123, sunil123, dwaraka123
+// passwords: admin123, ravi123, sneha123, dev123, sunil123, dwcra123
 export const demoPasswords = {
   'admin@solar.com': 'admin123',
   'ravi@solar.com': 'ravi123',
   'sneha@solar.com': 'sneha123',
   'dev@solar.com': 'dev123',
   'sunil@solar.com': 'sunil123',
-  'dwaraka@solar.com': 'dwaraka123',
+  'dwcra@solar.com': 'dwcra123',
 };
 
 // ── Projects ──
@@ -211,7 +211,7 @@ export const demoMaintenance = [
     id: 1, project_id: 1, project_name: '10kW Rooftop – Jubilee Hills',
     issue_type: 'panel_cleaning', priority: 'medium', status: 'completed',
     description: 'Annual maintenance check — panel cleaning and inverter inspection.',
-    assigned_to: 'dwaraka_group', electrician_name: 'Venkat Rao', electrician_phone: '9000100001',
+    assigned_to: 'dwcra_group', electrician_name: 'Venkat Rao', electrician_phone: '9000100001',
     scheduled_date: '2026-03-15', completed_date: '2026-03-15',
     resolution_notes: 'All panels cleaned. Inverter firmware updated. System performing at 98%.',
     amount: 5000, payment_status: 'paid', photo_1: null, photo_2: null,
@@ -233,7 +233,7 @@ export const demoMaintenance = [
     id: 3, project_id: 4, project_name: '50kW Hospital Backup – Secunderabad',
     issue_type: 'wiring_issue', priority: 'urgent', status: 'pending',
     description: 'Battery backup not switching over during power cuts. Critical for hospital operations.',
-    assigned_to: 'dwaraka_group', electrician_name: '', electrician_phone: '',
+    assigned_to: 'dwcra_group', electrician_name: '', electrician_phone: '',
     scheduled_date: null, completed_date: null,
     resolution_notes: null,
     amount: null, payment_status: 'unpaid', photo_1: null, photo_2: null,

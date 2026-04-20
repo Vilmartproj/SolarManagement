@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS maintenance_requests (
   description TEXT NOT NULL,
   priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
   status ENUM('pending', 'assigned', 'in_progress', 'completed', 'cancelled') DEFAULT 'pending',
-  assigned_to ENUM('local_electrician', 'dwaraka_group') DEFAULT NULL,
+  assigned_to ENUM('local_electrician', 'dwcra_group') DEFAULT NULL,
   electrician_name VARCHAR(150),
   electrician_phone VARCHAR(20),
   scheduled_date DATE,

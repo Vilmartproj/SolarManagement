@@ -5,11 +5,11 @@ const roles = [
   { value: 'admin', label: 'Admin' },
   { value: 'employee', label: 'Employee' },
   { value: 'electrician', label: 'Local Electrician' },
-  { value: 'dwaraka', label: 'Dwaraka Group' },
+  { value: 'dwcra', label: 'DWCRA Group' },
 ];
 
 const roleBadge = (role) => {
-  const map = { admin: 'paid', employee: 'sent', electrician: 'in_progress', dwaraka: 'assigned' };
+  const map = { admin: 'paid', employee: 'sent', electrician: 'in_progress', dwcra: 'assigned' };
   return map[role] || 'sent';
 };
 
@@ -195,7 +195,7 @@ export default function Employees() {
                     {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
-                {(form.role === 'electrician' || form.role === 'dwaraka') && (
+                {(form.role === 'electrician' || form.role === 'dwcra') && (
                   <>
                     <div className="form-group">
                       <label>Street</label>

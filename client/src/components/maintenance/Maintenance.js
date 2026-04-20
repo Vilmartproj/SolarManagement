@@ -33,7 +33,7 @@ export default function Maintenance() {
   const [viewPhotos, setViewPhotos] = useState(null);
   const [technicians, setTechnicians] = useState([]);
   const isAdmin = user?.role === 'admin';
-  const isTechnician = user?.role === 'electrician' || user?.role === 'dwaraka';
+  const isTechnician = user?.role === 'electrician' || user?.role === 'dwcra';
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -43,7 +43,7 @@ export default function Maintenance() {
       if (filter.assigned_to) params.assigned_to = filter.assigned_to;
       // Technicians only see their assigned work
       if (user?.role === 'electrician') params.tech_role = 'electrician';
-      if (user?.role === 'dwaraka') params.tech_role = 'dwaraka';
+      if (user?.role === 'dwcra') params.tech_role = 'dwcra';
       const res = await api.get('/maintenance', { params });
       let list = res.data;
       // Client-side filtering by technician village/taluka/district
@@ -78,14 +78,14 @@ export default function Maintenance() {
   const fetchTechnicians = async () => {
     try {
       const res = await api.get('/auth/users');
-      setTechnicians(res.data.filter(u => u.role === 'electrician' || u.role === 'dwaraka'));
+      setTechnicians(res.data.filter(u => u.role === 'electrician' || u.role === 'dwcra'));
     } catch (err) { console.error(err); }
   };
 
   // Map assigned_to value to user role
   const roleForAssignedTo = (assigned) => {
     if (assigned === 'local_electrician') return 'electrician';
-    if (assigned === 'dwaraka_group') return 'dwaraka';
+    if (assigned === 'dwcra_group') return 'dwcra';
     return null;
   };
 
@@ -199,7 +199,7 @@ export default function Maintenance() {
         <div className="card" style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b', marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, marginBottom: 4 }}>Need help with your solar system?</h3>
           <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
-            Submit a maintenance request and get connected with a <strong>Local Electrician</strong> or the <strong>Dwaraka Group</strong> service team. Our team will assign the right technician for your needs.
+            Submit a maintenance request and get connected with a <strong>Local Electrician</strong> or the <strong>DWCRA Group</strong> service team. Our team will assign the right technician for your needs.
           </p>
         </div>
       )}
@@ -235,7 +235,7 @@ export default function Maintenance() {
             onChange={(e) => setFilter({ ...filter, assigned_to: e.target.value })}>
             <option value="">All Teams</option>
             <option value="local_electrician">Local Electrician</option>
-            <option value="dwaraka_group">Dwaraka Group</option>
+            <option value="dwcra_group">DWCRA Group</option>
           </select>
         )}
         {isAdmin && (
@@ -296,7 +296,7 @@ export default function Maintenance() {
                     {!isTechnician && (
                       <td>
                         {req.assigned_to === 'local_electrician' && '⚡ Local Electrician'}
-                        {req.assigned_to === 'dwaraka_group' && '🏢 Dwaraka Group'}
+                        {req.assigned_to === 'dwcra_group' && '🏢 DWCRA Group'}
                         {!req.assigned_to && <span style={{ color: '#94a3b8' }}>Unassigned</span>}
                         {req.electrician_name && <div style={{ fontSize: 12, color: '#64748b' }}>{req.electrician_name}</div>}
                       </td>
@@ -466,7 +466,7 @@ export default function Maintenance() {
                     }}>
                     <option value="">Select service provider</option>
                     <option value="local_electrician">⚡ Local Electrician</option>
-                    <option value="dwaraka_group">🏢 Dwaraka Group</option>
+                    <option value="dwcra_group">🏢 DWCRA Group</option>
                   </select>
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>

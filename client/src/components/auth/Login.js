@@ -13,7 +13,7 @@ export default function Login() {
 
   if (user) {
     if (user.role === 'admin') return <Navigate to="/dashboard" />;
-    const techRoles = ['electrician', 'dwaraka'];
+    const techRoles = ['electrician', 'dwcra'];
     return <Navigate to={techRoles.includes(user.role) ? '/maintenance' : '/projects'} />;
   }
 
@@ -36,7 +36,7 @@ export default function Login() {
         const u = await login(form.email, form.password);
         if (u.role === 'admin') navigate('/dashboard');
         else {
-          const techRoles = ['electrician', 'dwaraka'];
+          const techRoles = ['electrician', 'dwcra'];
           navigate(techRoles.includes(u.role) ? '/maintenance' : '/projects');
         }
       }
@@ -48,8 +48,8 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="sun-logo"><Logo size={100} /></div>
-        <h1>Cheriesh Power Technologies</h1>
+        <div className="sun-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}><Logo size={100} /></div>
+        <h1 onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Cheriesh Power Technologies</h1>
         <p className="subtitle">{isRegister ? 'Create your account' : 'Sign in to your account'}</p>
 
         {error && <div className="error-message">{error}</div>}
@@ -125,7 +125,7 @@ export default function Login() {
               <span><b>Employee:</b> ravi@solar.com / ravi123</span>
               <span><b>Employee:</b> sneha@solar.com / sneha123</span>
               <span><b>Electrician:</b> sunil@solar.com / sunil123</span>
-              <span><b>Dwaraka Group:</b> dwaraka@solar.com / dwaraka123</span>
+              <span><b>DWCRA Group:</b> dwcra@solar.com / dwcra123</span>
             </div>
           </div>
         )}

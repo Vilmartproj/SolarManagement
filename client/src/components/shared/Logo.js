@@ -14,7 +14,9 @@ export function setCustomLogo(dataUrl) {
 
 function DefaultSvg({ size }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ verticalAlign: 'middle', flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ verticalAlign: 'middle', flexShrink: 0, display: 'block' }}>
+      {/* Plain circular background for universal contrast */}
+      <circle cx="50" cy="50" r="50" fill="white" />
       <path d="M50 8 A42 42 0 1 1 15 72" stroke="#f5a623" strokeWidth="4" fill="none" strokeLinecap="round" />
       <path d="M35 62 Q35 78 38 82 Q40 85 50 85 Q60 85 62 82 Q65 78 65 62 Q65 50 75 38 Q72 20 50 16 Q28 20 25 38 Q35 50 35 62Z" fill="url(#bulbGrad)" />
       <path d="M38 58 Q30 48 32 38 Q36 42 42 50 Q44 44 40 34 Q48 38 48 50Z" fill="#2ecc40" />
@@ -45,7 +47,7 @@ export default function Logo({ size = 100 }) {
   }, []);
 
   if (custom) {
-    return <img src={custom} alt="Logo" width={size} height={size} style={{ verticalAlign: 'middle', flexShrink: 0, objectFit: 'contain', borderRadius: 8 }} />;
+    return <img src={custom} alt="Logo" width={size} height={size} style={{ verticalAlign: 'middle', flexShrink: 0, objectFit: 'contain', borderRadius: '50%', background: 'white', display: 'block' }} />;
   }
   return <DefaultSvg size={size} />;
 }
@@ -93,7 +95,7 @@ export function LogoEditButton() {
 
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               {preview ? (
-                <img src={preview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                <img src={preview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'contain', borderRadius: '50%', background: 'white', border: '1px solid #e2e8f0' }} />
               ) : (
                 <DefaultSvg size={100} />
               )}

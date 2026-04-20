@@ -27,7 +27,7 @@ export default function Layout() {
           <button className="hamburger-btn" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle menu">
             <span /><span /><span />
           </button>
-          <span className="top-header-user">👤 {user?.name} ({user?.role === 'electrician' ? 'Local Electrician' : user?.role === 'dwaraka' ? 'Dwaraka Group' : user?.role})</span>
+          <span className="top-header-user">👤 {user?.name} ({user?.role === 'electrician' ? 'Local Electrician' : user?.role === 'dwcra' ? 'DWCRA Group' : user?.role})</span>
           <button className="btn btn-sm top-header-logout" onClick={handleLogout}>🚪 Logout</button>
         </div>
         <Outlet />
