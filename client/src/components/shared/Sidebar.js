@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo, { LogoEditButton } from './Logo';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ export default function Sidebar() {
   const isTechnician = user?.role === 'electrician' || user?.role === 'dwaraka';
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-header">
         <h2><Logo size={28} /> Cheriesh Power</h2>
         {isDev && <LogoEditButton />}

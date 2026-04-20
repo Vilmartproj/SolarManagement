@@ -814,6 +814,28 @@
   .cta-contact-info { flex-direction: column; align-items: center; gap: 12px; }
 }
 
+@media (max-width: 480px) {
+  .hero-section { padding: 100px 16px 60px; }
+  .hero-content h1 { font-size: 26px; }
+  .hero-content p { font-size: 14px; }
+  .hero-badge { font-size: 12px; padding: 6px 14px; }
+  .hero-stats { gap: 16px; flex-wrap: wrap; }
+  .hero-stat-value { font-size: 22px; }
+  .hero-stat-label { font-size: 11px; }
+  .btn-landing { padding: 12px 24px; font-size: 14px; }
+  .section { padding: 60px 16px; }
+  .section-title { font-size: 24px; }
+  .section-subtitle { font-size: 15px; margin-bottom: 32px; }
+  .service-card, .trend-card, .benefit-card, .testimonial-card { padding: 20px; }
+  .showcase-img { height: 140px; font-size: 48px; }
+  .showcase-info { padding: 16px; }
+  .nav-container { padding: 0 16px; }
+  .nav-brand-name { font-size: 18px; }
+  .nav-brand-sub { font-size: 10px; }
+  .section-cta { padding: 60px 16px; }
+  .landing-footer { padding: 40px 16px 20px; }
+}
+
 /* ===== Edit Mode Toolbar ===== */
 .landing-edit-toolbar {
   position: fixed;

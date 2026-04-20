@@ -13,7 +13,12 @@ const roleBadge = (role) => {
   return map[role] || 'sent';
 };
 
-const emptyUser = { name: '', email: '', phone: '', role: 'employee', password: '' };
+const emptyUser = { name: '', email: '', phone: '', role: 'employee', password: '', street: '', village: '', taluka: '', district: '', state: '' };
+
+function formatAddress(u) {
+  const parts = [u.street, u.village, u.taluka, u.district, u.state].filter(Boolean);
+  return parts.length ? parts.join(', ') : '-';
+}
 
 export default function Employees() {
   const [users, setUsers] = useState([]);
@@ -21,7 +26,7 @@ export default function Employees() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyUser);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState({ role: '', village: '', taluka: '', district: '' });
 
   const fetchUsers = async () => {
     try {
@@ -43,7 +48,7 @@ export default function Employees() {
 
   const openEdit = (u) => {
     setEditing(u.id);
-    setForm({ name: u.name, email: u.email, phone: u.phone || '', role: u.role, password: '' });
+    setForm({ name: u.name, email: u.email, phone: u.phone || '', role: u.role, password: '', street: u.street || '', village: u.village || '', taluka: u.taluka || '', district: u.district || '', state: u.state || '' });
     setError('');
     setShowModal(true);
   };
@@ -75,7 +80,23 @@ export default function Employees() {
     } catch (err) { alert('Failed to delete'); }
   };
 
-  const filtered = filter ? users.filter((u) => u.role === filter) : users;
+  const filtered = users.filter((u) => {
+    if (filter.role && u.role !== filter.role) return false;
+    if (filter.village && (u.village || '') !== filter.village) return false;
+    if (filter.taluka && (u.taluka || '') !== filter.taluka) return false;
+    if (filter.district && (u.district || '') !== filter.district) return false;
+    return true;
+  });
+
+  const uniqueVals = (key) => [...new Set(users.map((u) => u[key]).filter(Boolean))].sort();
+
+  const districtOptions = uniqueVals('district');
+  const talukaOptions = [...new Set(
+    users.filter((u) => !filter.district || u.district === filter.district).map((u) => u.taluka).filter(Boolean)
+  )].sort();
+  const villageOptions = [...new Set(
+    users.filter((u) => (!filter.district || u.district === filter.district) && (!filter.taluka || u.taluka === filter.taluka)).map((u) => u.village).filter(Boolean)
+  )].sort();
 
   return (
     <div>
@@ -85,9 +106,21 @@ export default function Employees() {
       </div>
 
       <div className="filters-bar">
-        <select className="form-control" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <select className="form-control" value={filter.role} onChange={(e) => setFilter({ ...filter, role: e.target.value })}>
           <option value="">All Roles</option>
           {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+        <select className="form-control" value={filter.district} onChange={(e) => setFilter({ ...filter, district: e.target.value, taluka: '', village: '' })}>
+          <option value="">All Districts</option>
+          {districtOptions.map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
+        <select className="form-control" value={filter.taluka} onChange={(e) => setFilter({ ...filter, taluka: e.target.value, village: '' })}>
+          <option value="">All Talukas</option>
+          {talukaOptions.map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
+        <select className="form-control" value={filter.village} onChange={(e) => setFilter({ ...filter, village: e.target.value })}>
+          <option value="">All Villages</option>
+          {villageOptions.map((v) => <option key={v} value={v}>{v}</option>)}
         </select>
       </div>
 
@@ -100,12 +133,13 @@ export default function Employees() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Phone</th>
+                <th>Address</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No users found</td></tr>
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No users found</td></tr>
               ) : (
                 filtered.map((u) => (
                   <tr key={u.id}>
@@ -115,6 +149,7 @@ export default function Employees() {
                       {roles.find((r) => r.value === u.role)?.label || u.role}
                     </span></td>
                     <td>{u.phone || '-'}</td>
+                    <td>{formatAddress(u)}</td>
                     <td>
                       <div className="action-buttons">
                         <button className="btn btn-outline btn-sm" onClick={() => openEdit(u)}>Edit</button>
@@ -160,6 +195,35 @@ export default function Employees() {
                     {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
+                {(form.role === 'electrician' || form.role === 'dwaraka') && (
+                  <>
+                    <div className="form-group">
+                      <label>Street</label>
+                      <input type="text" name="street" className="form-control"
+                        value={form.street} onChange={handleChange} placeholder="Street / Door No" />
+                    </div>
+                    <div className="form-group">
+                      <label>Village</label>
+                      <input type="text" name="village" className="form-control"
+                        value={form.village} onChange={handleChange} placeholder="Village" />
+                    </div>
+                    <div className="form-group">
+                      <label>Taluka</label>
+                      <input type="text" name="taluka" className="form-control"
+                        value={form.taluka} onChange={handleChange} placeholder="Taluka / Mandal" />
+                    </div>
+                    <div className="form-group">
+                      <label>District</label>
+                      <input type="text" name="district" className="form-control"
+                        value={form.district} onChange={handleChange} placeholder="District" />
+                    </div>
+                    <div className="form-group">
+                      <label>State</label>
+                      <input type="text" name="state" className="form-control"
+                        value={form.state} onChange={handleChange} placeholder="State" />
+                    </div>
+                  </>
+                )}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>{editing ? 'New Password (leave blank to keep current)' : 'Password *'}</label>
                   <input type="password" name="password" className="form-control"

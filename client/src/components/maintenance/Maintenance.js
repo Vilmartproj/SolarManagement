@@ -26,7 +26,7 @@ export default function Maintenance() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyRequest);
-  const [filter, setFilter] = useState({ status: '', priority: '', assigned_to: '' });
+  const [filter, setFilter] = useState({ status: '', priority: '', assigned_to: '', village: '', taluka: '', district: '' });
   const [error, setError] = useState('');
   const [photos, setPhotos] = useState([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState([]);
@@ -45,11 +45,28 @@ export default function Maintenance() {
       if (user?.role === 'electrician') params.tech_role = 'electrician';
       if (user?.role === 'dwaraka') params.tech_role = 'dwaraka';
       const res = await api.get('/maintenance', { params });
-      setRequests(res.data);
+      let list = res.data;
+      // Client-side filtering by technician village/taluka/district
+      if (filter.village || filter.taluka || filter.district) {
+        const allUsers = (await api.get('/auth/users')).data;
+        const techMap = {};
+        allUsers.forEach((u) => { techMap[u.name] = u; });
+        list = list.filter((r) => {
+          const tech = techMap[r.electrician_name];
+          if (!tech) return false;
+          if (filter.village && (tech.village || '') !== filter.village) return false;
+          if (filter.taluka && (tech.taluka || '') !== filter.taluka) return false;
+          if (filter.district && (tech.district || '') !== filter.district) return false;
+          return true;
+        });
+      }
+      setRequests(list);
     } catch (err) { console.error(err); }
   }, [filter, user?.role]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
+
+  useEffect(() => { fetchTechnicians(); }, []);
 
   const fetchProjects = async () => {
     try {
@@ -221,6 +238,31 @@ export default function Maintenance() {
             <option value="dwaraka_group">Dwaraka Group</option>
           </select>
         )}
+        {isAdmin && (
+          <>
+            <select className="form-control" value={filter.district}
+              onChange={(e) => setFilter({ ...filter, district: e.target.value, taluka: '', village: '' })}>
+              <option value="">All Districts</option>
+              {[...new Set(technicians.map((t) => t.district).filter(Boolean))].sort().map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+            <select className="form-control" value={filter.taluka}
+              onChange={(e) => setFilter({ ...filter, taluka: e.target.value, village: '' })}>
+              <option value="">All Talukas</option>
+              {[...new Set(technicians.filter((t) => !filter.district || t.district === filter.district).map((t) => t.taluka).filter(Boolean))].sort().map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+            <select className="form-control" value={filter.village}
+              onChange={(e) => setFilter({ ...filter, village: e.target.value })}>
+              <option value="">All Villages</option>
+              {[...new Set(technicians.filter((t) => (!filter.district || t.district === filter.district) && (!filter.taluka || t.taluka === filter.taluka)).map((t) => t.village).filter(Boolean))].sort().map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       <div className="card">
@@ -237,7 +279,7 @@ export default function Maintenance() {
                 <th>Payment</th>
                 <th>Status</th>
                 <th>Scheduled</th>
-                {isAdmin && <th>Requested By</th>}
+                {isAdmin && <th>Address</th>}
                 <th>Actions</th>
               </tr>
             </thead>
@@ -267,7 +309,11 @@ export default function Maintenance() {
                     </td>
                     <td><span className={`badge badge-${req.status}`}>{req.status.replace('_', ' ')}</span></td>
                     <td>{req.scheduled_date ? new Date(req.scheduled_date).toLocaleDateString() : '-'}</td>
-                    {isAdmin && <td>{req.requested_by_name}</td>}
+                    {isAdmin && <td style={{ fontSize: 12 }}>{(() => {
+                      const tech = technicians.find(t => t.name === req.electrician_name);
+                      if (!tech) return '-';
+                      return [tech.street, tech.village, tech.taluka, tech.district, tech.state].filter(Boolean).join(', ') || '-';
+                    })()}</td>}
                     <td>
                       <div className="action-buttons">
                         {isTechnician ? (
