@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 const LOGO_KEY = 'cheriesh_custom_logo';
+const STATIC_LOGO = process.env.PUBLIC_URL + '/custom-logo.png';
 
 function getCustomLogo() {
   try { return localStorage.getItem(LOGO_KEY); } catch { return null; }
@@ -39,6 +40,7 @@ function DefaultSvg({ size }) {
 
 export default function Logo({ size = 100 }) {
   const [custom, setCustom] = useState(getCustomLogo);
+  const [staticExists, setStaticExists] = useState(false);
 
   useEffect(() => {
     const handler = () => setCustom(getCustomLogo());
@@ -46,8 +48,17 @@ export default function Logo({ size = 100 }) {
     return () => window.removeEventListener('logo-changed', handler);
   }, []);
 
-  if (custom) {
-    return <img src={custom} alt="Logo" width={size} height={size} style={{ verticalAlign: 'middle', flexShrink: 0, objectFit: 'contain', borderRadius: '50%', background: 'white', display: 'block' }} />;
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setStaticExists(true);
+    img.onerror = () => setStaticExists(false);
+    img.src = STATIC_LOGO;
+  }, []);
+
+  const logoSrc = custom || (staticExists ? STATIC_LOGO : null);
+
+  if (logoSrc) {
+    return <img src={logoSrc} alt="Logo" width={size} height={size} style={{ verticalAlign: 'middle', flexShrink: 0, objectFit: 'contain', borderRadius: '50%', background: 'white', display: 'block' }} />;
   }
   return <DefaultSvg size={size} />;
 }

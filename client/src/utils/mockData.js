@@ -4,14 +4,18 @@ export const demoUsers = [
   { id: 2, name: 'Ravi Kumar', email: 'ravi@solar.com', phone: '9876543211', role: 'employee' },
   { id: 3, name: 'Sneha Reddy', email: 'sneha@solar.com', phone: '9876543212', role: 'employee' },
   { id: 4, name: 'Medha Dev', email: 'dev@solar.com', phone: '9876543213', role: 'admin' },
+  { id: 5, name: 'Sunil Electricals', email: 'sunil@solar.com', phone: '9876543214', role: 'electrician' },
+  { id: 6, name: 'DWCRA Group Service', email: 'dwcra@solar.com', phone: '9876543215', role: 'dwcra' },
 ];
 
-// passwords: admin123, ravi123, sneha123, dev123
+// passwords: admin123, ravi123, sneha123, dev123, sunil123, dwcra123
 export const demoPasswords = {
   'admin@solar.com': 'admin123',
   'ravi@solar.com': 'ravi123',
   'sneha@solar.com': 'sneha123',
   'dev@solar.com': 'dev123',
+  'sunil@solar.com': 'sunil123',
+  'dwcra@solar.com': 'dwcra123',
 };
 
 // ── Projects ──
