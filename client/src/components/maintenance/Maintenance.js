@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
+import { notifyAssignment } from '../../utils/notifications';
 
 const issueTypes = [
   { value: 'panel_cleaning', label: 'Panel Cleaning' },
@@ -173,6 +174,17 @@ export default function Maintenance() {
         await api.post('/maintenance', form);
       }
       setShowModal(false);
+      // Notify assigned technician(s)
+      if (form.assigned_to && form.electrician_name) {
+        const project = projects.find(p => String(p.id) === String(form.project_id));
+        notifyAssignment({
+          assignedTo: form.assigned_to,
+          electricianName: form.electrician_name,
+          projectName: project?.project_name || '',
+          issueType: form.issue_type,
+          technicianUsers: technicians,
+        });
+      }
       fetchRequests();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save request');
@@ -462,7 +474,10 @@ export default function Maintenance() {
                   <label>Connect With *</label>
                   <select name="assigned_to" className="form-control" value={form.assigned_to}
                     onChange={(e) => {
-                      setForm({ ...form, assigned_to: e.target.value, electrician_name: '', electrician_phone: '' });
+                      const val = e.target.value;
+                      const updates = { assigned_to: val, electrician_name: '', electrician_phone: '' };
+                      if (val && form.status === 'pending') updates.status = 'assigned';
+                      setForm({ ...form, ...updates });
                     }}>
                     <option value="">Select service provider</option>
                     <option value="local_electrician">⚡ Local Electrician</option>
