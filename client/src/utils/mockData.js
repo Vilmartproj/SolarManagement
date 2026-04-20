@@ -4,18 +4,14 @@ export const demoUsers = [
   { id: 2, name: 'Ravi Kumar', email: 'ravi@solar.com', phone: '9876543211', role: 'employee' },
   { id: 3, name: 'Sneha Reddy', email: 'sneha@solar.com', phone: '9876543212', role: 'employee' },
   { id: 4, name: 'Medha Dev', email: 'dev@solar.com', phone: '9876543213', role: 'admin' },
-  { id: 5, name: 'Sunil Electricals', email: 'sunil@solar.com', phone: '9876543214', role: 'electrician' },
-  { id: 6, name: 'DWCRA Group Service', email: 'dwcra@solar.com', phone: '9876543215', role: 'dwcra' },
 ];
 
-// passwords: admin123, ravi123, sneha123, dev123, sunil123, dwcra123
+// passwords: admin123, ravi123, sneha123, dev123
 export const demoPasswords = {
   'admin@solar.com': 'admin123',
   'ravi@solar.com': 'ravi123',
   'sneha@solar.com': 'sneha123',
   'dev@solar.com': 'dev123',
-  'sunil@solar.com': 'sunil123',
-  'dwcra@solar.com': 'dwcra123',
 };
 
 // ── Projects ──
@@ -222,7 +218,7 @@ export const demoMaintenance = [
     id: 2, project_id: 3, project_name: '5kW Residential – Madhapur',
     issue_type: 'inverter_repair', priority: 'high', status: 'in_progress',
     description: 'Inverter showing error E-011. System not generating power since yesterday.',
-    assigned_to: 'local_electrician', electrician_name: 'Sunil Electricals', electrician_phone: '9876543214',
+    assigned_to: 'local_electrician', electrician_name: '', electrician_phone: '',
     scheduled_date: '2026-04-08', completed_date: null,
     resolution_notes: null,
     amount: 12000, payment_status: 'unpaid', photo_1: null, photo_2: null,
@@ -244,7 +240,7 @@ export const demoMaintenance = [
     id: 4, project_id: 2, project_name: '100kW Ground Mount – Vizag Factory',
     issue_type: 'panel_cleaning', priority: 'low', status: 'completed',
     description: 'Quarterly panel cleaning for ground mount array. Dust accumulation noted.',
-    assigned_to: 'local_electrician', electrician_name: 'Sunil Electricals', electrician_phone: '9876543214',
+    assigned_to: 'local_electrician', electrician_name: '', electrician_phone: '',
     scheduled_date: '2026-02-20', completed_date: '2026-02-20',
     resolution_notes: 'All 200 panels cleaned with soft brush and DI water. Generation improved by 8%.',
     amount: 15000, payment_status: 'paid', photo_1: null, photo_2: null,

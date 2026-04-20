@@ -124,8 +124,6 @@ export default function Login() {
               <span><b>Developer:</b> dev@solar.com / dev123</span>
               <span><b>Employee:</b> ravi@solar.com / ravi123</span>
               <span><b>Employee:</b> sneha@solar.com / sneha123</span>
-              <span><b>Electrician:</b> sunil@solar.com / sunil123</span>
-              <span><b>DWCRA Group:</b> dwcra@solar.com / dwcra123</span>
             </div>
           </div>
         )}
