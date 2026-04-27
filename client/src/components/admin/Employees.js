@@ -26,6 +26,7 @@ export default function Employees() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyUser);
   const [error, setError] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [filter, setFilter] = useState({ role: '', village: '', taluka: '', district: '' });
 
   const fetchUsers = async () => {
@@ -43,13 +44,15 @@ export default function Employees() {
     setEditing(null);
     setForm(emptyUser);
     setError('');
+    setShowPass(false);
     setShowModal(true);
   };
 
   const openEdit = (u) => {
     setEditing(u.id);
-    setForm({ name: u.name, email: u.email, phone: u.phone || '', role: u.role, password: '', street: u.street || '', village: u.village || '', taluka: u.taluka || '', district: u.district || '', state: u.state || '' });
+    setForm({ name: u.name, email: u.email, phone: u.phone || '', role: u.role, password: u.password || '', street: u.street || '', village: u.village || '', taluka: u.taluka || '', district: u.district || '', state: u.state || '' });
     setError('');
+    setShowPass(false);
     setShowModal(true);
   };
 
@@ -225,12 +228,30 @@ export default function Employees() {
                   </>
                 )}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>{editing ? 'New Password (leave blank to keep current)' : 'Password *'}</label>
-                  <input type="password" name="password" className="form-control"
-                    value={form.password} onChange={handleChange}
-                    minLength={editing ? 0 : 6}
-                    required={!editing}
-                    placeholder={editing ? 'Leave blank to keep current' : 'Min 6 characters'} />
+                  <label>{editing ? 'Password' : 'Password *'}</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPass ? 'text' : 'password'}
+                      name="password" className="form-control"
+                      value={form.password} onChange={handleChange}
+                      minLength={editing ? 0 : 6}
+                      required={!editing}
+                      placeholder={editing ? 'Current password shown — edit to change' : 'Min 6 characters'}
+                      style={{ paddingRight: 44 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass((v) => !v)}
+                      style={{
+                        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b', padding: 0,
+                      }}
+                      title={showPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showPass ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {editing && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Showing current password — modify and save to change it</div>}
                 </div>
               </div>
               <div className="modal-footer">

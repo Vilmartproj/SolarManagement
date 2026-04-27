@@ -29,7 +29,11 @@ router.get('/', maintenanceController.getAllRequests);
 router.get('/:id', maintenanceController.getRequestById);
 router.post('/', maintenanceController.createRequest);
 router.put('/:id', maintenanceController.updateRequest);
-router.post('/:id/photos', upload.array('photos', 2), maintenanceController.uploadPhotos);
+const uploadFields = upload.fields([
+  { name: 'before_photos', maxCount: 2 },
+  { name: 'after_photos', maxCount: 2 },
+]);
+router.post('/:id/photos', uploadFields, maintenanceController.uploadPhotos);
 router.delete('/:id', authorizeAdmin, maintenanceController.deleteRequest);
 
 module.exports = router;

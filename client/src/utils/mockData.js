@@ -1,11 +1,11 @@
 // ── Demo users ──
 export const demoUsers = [
-  { id: 1, name: 'Admin User', email: 'admin@solar.com', phone: '9876543210', role: 'admin' },
-  { id: 2, name: 'Ravi Kumar', email: 'ravi@solar.com', phone: '9876543211', role: 'employee' },
-  { id: 3, name: 'Sneha Reddy', email: 'sneha@solar.com', phone: '9876543212', role: 'employee' },
-  { id: 4, name: 'Medha Dev', email: 'dev@solar.com', phone: '9876543213', role: 'admin' },
-  { id: 5, name: 'Sunil Electricals', email: 'sunil@solar.com', phone: '9876543214', role: 'electrician' },
-  { id: 6, name: 'DWCRA Group Service', email: 'dwcra@solar.com', phone: '9876543215', role: 'dwcra' },
+  { id: 1, name: 'Admin User', email: 'admin@solar.com', phone: '9876543210', role: 'admin', street: '', village: '', taluka: '', district: '', state: '' },
+  { id: 2, name: 'Ravi Kumar', email: 'ravi@solar.com', phone: '9876543211', role: 'employee', street: '', village: '', taluka: '', district: '', state: '' },
+  { id: 3, name: 'Sneha Reddy', email: 'sneha@solar.com', phone: '9876543212', role: 'employee', street: '', village: '', taluka: '', district: '', state: '' },
+  { id: 4, name: 'Medha Dev', email: 'dev@solar.com', phone: '9876543213', role: 'admin', street: '', village: '', taluka: '', district: '', state: '' },
+  { id: 5, name: 'Sunil Electricals', email: 'sunil@solar.com', phone: '9876543214', role: 'electrician', street: 'Door No 5, Main Road', village: 'Jubilee Hills', taluka: 'Khairatabad', district: 'Hyderabad', state: 'Telangana' },
+  { id: 6, name: 'DWCRA Group Service', email: 'dwcra@solar.com', phone: '9876543215', role: 'dwcra', street: 'Block 2, DWCRA Colony', village: 'Madhapur', taluka: 'Serilingampally', district: 'Hyderabad', state: 'Telangana' },
 ];
 
 // passwords: admin123, ravi123, sneha123, dev123, sunil123, dwcra123
@@ -214,7 +214,7 @@ export const demoMaintenance = [
     assigned_to: 'dwcra_group', electrician_name: 'Venkat Rao', electrician_phone: '9000100001',
     scheduled_date: '2026-03-15', completed_date: '2026-03-15',
     resolution_notes: 'All panels cleaned. Inverter firmware updated. System performing at 98%.',
-    amount: 5000, payment_status: 'paid', photo_1: null, photo_2: null,
+    amount: 5000, payment_status: 'paid', before_photo_1: null, before_photo_2: null, after_photo_1: null, after_photo_2: null,
     created_by: 2, requested_by_name: 'Ravi Kumar',
     created_at: '2026-03-01T10:00:00Z',
   },
@@ -225,7 +225,7 @@ export const demoMaintenance = [
     assigned_to: 'local_electrician', electrician_name: '', electrician_phone: '',
     scheduled_date: '2026-04-08', completed_date: null,
     resolution_notes: null,
-    amount: 12000, payment_status: 'unpaid', photo_1: null, photo_2: null,
+    amount: 12000, payment_status: 'unpaid', before_photo_1: null, before_photo_2: null, after_photo_1: null, after_photo_2: null,
     created_by: 3, requested_by_name: 'Sneha Reddy',
     created_at: '2026-04-07T08:00:00Z',
   },
@@ -236,7 +236,7 @@ export const demoMaintenance = [
     assigned_to: 'dwcra_group', electrician_name: '', electrician_phone: '',
     scheduled_date: null, completed_date: null,
     resolution_notes: null,
-    amount: null, payment_status: 'unpaid', photo_1: null, photo_2: null,
+    amount: null, payment_status: 'unpaid', before_photo_1: null, before_photo_2: null, after_photo_1: null, after_photo_2: null,
     created_by: 2, requested_by_name: 'Ravi Kumar',
     created_at: '2026-04-08T06:00:00Z',
   },
@@ -247,7 +247,7 @@ export const demoMaintenance = [
     assigned_to: 'local_electrician', electrician_name: '', electrician_phone: '',
     scheduled_date: '2026-02-20', completed_date: '2026-02-20',
     resolution_notes: 'All 200 panels cleaned with soft brush and DI water. Generation improved by 8%.',
-    amount: 15000, payment_status: 'paid', photo_1: null, photo_2: null,
+    amount: 15000, payment_status: 'paid', before_photo_1: null, before_photo_2: null, after_photo_1: null, after_photo_2: null,
     created_by: 3, requested_by_name: 'Sneha Reddy',
     created_at: '2026-02-10T10:00:00Z',
   },

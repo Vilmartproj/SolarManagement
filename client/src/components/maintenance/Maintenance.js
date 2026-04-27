@@ -29,8 +29,10 @@ export default function Maintenance() {
   const [form, setForm] = useState(emptyRequest);
   const [filter, setFilter] = useState({ status: '', priority: '', assigned_to: '', village: '', taluka: '', district: '' });
   const [error, setError] = useState('');
-  const [photos, setPhotos] = useState([]);
-  const [photoPreviewUrls, setPhotoPreviewUrls] = useState([]);
+  const [beforePhotos, setBeforePhotos] = useState([]);
+  const [beforePreviewUrls, setBeforePreviewUrls] = useState([]);
+  const [afterPhotos, setAfterPhotos] = useState([]);
+  const [afterPreviewUrls, setAfterPreviewUrls] = useState([]);
   const [viewPhotos, setViewPhotos] = useState(null);
   const [technicians, setTechnicians] = useState([]);
   const isAdmin = user?.role === 'admin';
@@ -67,7 +69,9 @@ export default function Maintenance() {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  useEffect(() => { fetchTechnicians(); }, []);
+  useEffect(() => {
+    if (user?.role !== 'electrician' && user?.role !== 'dwcra') fetchTechnicians();
+  }, [user?.role]);
 
   const fetchProjects = async () => {
     try {
@@ -96,13 +100,22 @@ export default function Maintenance() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const closeModal = () => {
+    [...beforePreviewUrls, ...afterPreviewUrls].forEach(url => URL.revokeObjectURL(url));
+    setBeforePreviewUrls([]);
+    setAfterPreviewUrls([]);
+    setShowModal(false);
+  };
+
   const openCreate = () => {
     fetchProjects();
     fetchTechnicians();
     setEditing(null);
     setForm(emptyRequest);
-    setPhotos([]);
-    setPhotoPreviewUrls([]);
+    setBeforePhotos([]);
+    setBeforePreviewUrls([]);
+    setAfterPhotos([]);
+    setAfterPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
@@ -119,8 +132,10 @@ export default function Maintenance() {
       amount: req.amount || '',
       payment_status: req.payment_status || 'unpaid',
     });
-    setPhotos([]);
-    setPhotoPreviewUrls([]);
+    setBeforePhotos([]);
+    setBeforePreviewUrls([]);
+    setAfterPhotos([]);
+    setAfterPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
@@ -134,8 +149,10 @@ export default function Maintenance() {
       amount: req.amount || '',
       payment_status: req.payment_status || 'unpaid',
     });
-    setPhotos([]);
-    setPhotoPreviewUrls([]);
+    setBeforePhotos([]);
+    setBeforePreviewUrls([]);
+    setAfterPhotos([]);
+    setAfterPreviewUrls([]);
     setError('');
     setShowModal(true);
   };
@@ -145,35 +162,43 @@ export default function Maintenance() {
     setError('');
     try {
       if (editing) {
-        await api.put(`/maintenance/${editing}`, form);
-        // Upload photos if selected (technician)
-        if (photos.length > 0) {
-          // Convert to data URLs for demo mode compatibility
-          const toDataURL = (file) => new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(file);
-          });
-          const dataUrls = await Promise.all(photos.map(toDataURL));
-          // Update record with photo data URLs directly (works in demo + backend)
-          await api.put(`/maintenance/${editing}`, {
-            ...form,
-            photo_1: dataUrls[0] || form.photo_1 || null,
-            photo_2: dataUrls[1] || form.photo_2 || null,
-          });
-          // Also try the dedicated upload endpoint for real backend
-          try {
-            const formData = new FormData();
-            photos.forEach((p) => formData.append('photos', p));
-            await api.post(`/maintenance/${editing}/photos`, formData, {
+        const toDataURL = (file) => new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+        const [beforeDataUrls, afterDataUrls] = await Promise.all([
+          Promise.all(beforePhotos.map(toDataURL)),
+          Promise.all(afterPhotos.map(toDataURL)),
+        ]);
+        await api.put(`/maintenance/${editing}`, {
+          ...form,
+          before_photo_1: beforeDataUrls[0] || form.before_photo_1 || null,
+          before_photo_2: beforeDataUrls[1] || form.before_photo_2 || null,
+          after_photo_1: afterDataUrls[0] || form.after_photo_1 || null,
+          after_photo_2: afterDataUrls[1] || form.after_photo_2 || null,
+        });
+        // Also try dedicated upload endpoints for real backend
+        try {
+          if (beforePhotos.length > 0) {
+            const fd = new FormData();
+            beforePhotos.forEach((p) => fd.append('before_photos', p));
+            await api.post(`/maintenance/${editing}/photos?type=before`, fd, {
               headers: { 'Content-Type': 'multipart/form-data' },
             });
-          } catch (_) { /* ignore if mock mode */ }
-        }
+          }
+          if (afterPhotos.length > 0) {
+            const fd = new FormData();
+            afterPhotos.forEach((p) => fd.append('after_photos', p));
+            await api.post(`/maintenance/${editing}/photos?type=after`, fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+          }
+        } catch (_) { /* ignore if mock mode */ }
       } else {
         await api.post('/maintenance', form);
       }
-      setShowModal(false);
+      closeModal();
       // Notify assigned technician(s)
       if (form.assigned_to && form.electrician_name) {
         const project = projects.find(p => String(p.id) === String(form.project_id));
@@ -335,7 +360,7 @@ export default function Maintenance() {
                             {isAdmin ? 'Manage' : 'Edit'}
                           </button>
                         )}
-                        {isAdmin && (req.photo_1 || req.photo_2) && (
+                        {isAdmin && (req.before_photo_1 || req.before_photo_2 || req.after_photo_1 || req.after_photo_2) && (
                           <button className="btn btn-outline btn-sm" onClick={() => setViewPhotos(req)}
                             title="View Photos">📷</button>
                         )}
@@ -354,11 +379,11 @@ export default function Maintenance() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{isTechnician ? 'Update Work Status' : (editing ? (isAdmin ? 'Manage Request' : 'Edit Request') : 'New Maintenance Request')}</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
+              <button className="modal-close" onClick={closeModal}>×</button>
             </div>
             {error && <div className="error-message">{error}</div>}
             <form onSubmit={handleSubmit}>
@@ -419,27 +444,55 @@ export default function Maintenance() {
                       <label>Payment Status</label>
                       <input type="text" className="form-control" value={form.payment_status === 'paid' ? 'Paid' : 'Unpaid'} disabled />
                     </div>
-                    {/* Photo Upload — max 2 */}
+                    {/* Before Photos */}
                     <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <label>Upload Photos (max 2)</label>
+                      <label>📷 Before Photos (max 2)</label>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 6px' }}>Upload photos showing the issue before work begins</p>
                       <input type="file" accept="image/jpeg,image/png,image/webp" multiple
                         className="form-control"
                         onChange={(e) => {
+                          beforePreviewUrls.forEach(url => URL.revokeObjectURL(url));
                           const files = Array.from(e.target.files).slice(0, 2);
-                          setPhotos(files);
-                          setPhotoPreviewUrls(files.map(f => URL.createObjectURL(f)));
+                          setBeforePhotos(files);
+                          setBeforePreviewUrls(files.map(f => URL.createObjectURL(f)));
                         }} />
-                      {photoPreviewUrls.length > 0 && (
+                      {beforePreviewUrls.length > 0 && (
                         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                          {photoPreviewUrls.map((url, i) => (
-                            <img key={i} src={url} alt={`Preview ${i + 1}`}
-                              style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                          {beforePreviewUrls.map((url, i) => (
+                            <img key={i} src={url} alt={`Before ${i + 1}`}
+                              style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, border: '2px solid #fef3c7' }} />
                           ))}
                         </div>
                       )}
-                      {(form.photo_1 || form.photo_2) && photoPreviewUrls.length === 0 && (
+                      {(form.before_photo_1 || form.before_photo_2) && beforePreviewUrls.length === 0 && (
                         <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
-                          {[form.photo_1, form.photo_2].filter(Boolean).length} photo(s) already uploaded
+                          {[form.before_photo_1, form.before_photo_2].filter(Boolean).length} before photo(s) already uploaded
+                        </div>
+                      )}
+                    </div>
+                    {/* After Photos */}
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>✅ After Photos (max 2)</label>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 6px' }}>Upload photos showing the completed work</p>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+                        className="form-control"
+                        onChange={(e) => {
+                          afterPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+                          const files = Array.from(e.target.files).slice(0, 2);
+                          setAfterPhotos(files);
+                          setAfterPreviewUrls(files.map(f => URL.createObjectURL(f)));
+                        }} />
+                      {afterPreviewUrls.length > 0 && (
+                        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                          {afterPreviewUrls.map((url, i) => (
+                            <img key={i} src={url} alt={`After ${i + 1}`}
+                              style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, border: '2px solid #d1fae5' }} />
+                          ))}
+                        </div>
+                      )}
+                      {(form.after_photo_1 || form.after_photo_2) && afterPreviewUrls.length === 0 && (
+                        <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
+                          {[form.after_photo_1, form.after_photo_2].filter(Boolean).length} after photo(s) already uploaded
                         </div>
                       )}
                     </div>
@@ -564,16 +617,33 @@ export default function Maintenance() {
                       </select>
                     </div>
                     {/* Admin: View uploaded photos */}
-                    {editing && (form.photo_1 || form.photo_2) && (
+                    {editing && (form.before_photo_1 || form.before_photo_2 || form.after_photo_1 || form.after_photo_2) && (
                       <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                         <label>Uploaded Photos</label>
-                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                          {[form.photo_1, form.photo_2].filter(Boolean).map((url, i) => (
-                            <img key={i} src={url} alt={`Maintenance photo ${i + 1}`}
-                              style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                              onClick={() => window.open(url, '_blank')} />
-                          ))}
-                        </div>
+                        {(form.before_photo_1 || form.before_photo_2) && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, marginBottom: 6 }}>📷 Before Work</div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                              {[form.before_photo_1, form.before_photo_2].filter(Boolean).map((url, i) => (
+                                <img key={i} src={url} alt={`Before photo ${i + 1}`}
+                                  style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '2px solid #fef3c7', cursor: 'pointer' }}
+                                  onClick={() => window.open(url, '_blank')} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(form.after_photo_1 || form.after_photo_2) && (
+                          <div>
+                            <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600, marginBottom: 6 }}>✅ After Work</div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                              {[form.after_photo_1, form.after_photo_2].filter(Boolean).map((url, i) => (
+                                <img key={i} src={url} alt={`After photo ${i + 1}`}
+                                  style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, border: '2px solid #d1fae5', cursor: 'pointer' }}
+                                  onClick={() => window.open(url, '_blank')} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>
@@ -583,7 +653,7 @@ export default function Maintenance() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-outline" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="btn btn-primary">
                   {editing ? 'Update' : 'Submit'} Request
                 </button>
@@ -596,17 +666,39 @@ export default function Maintenance() {
       {/* Photo Viewer Modal (admin) */}
       {viewPhotos && (
         <div className="modal-overlay" onClick={() => setViewPhotos(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700 }}>
             <div className="modal-header">
               <h2>Photos — Request #{viewPhotos.id}</h2>
               <button className="modal-close" onClick={() => setViewPhotos(null)}>×</button>
             </div>
-            <div style={{ display: 'flex', gap: 16, padding: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {[viewPhotos.photo_1, viewPhotos.photo_2].filter(Boolean).map((url, i) => (
-                <img key={i} src={url} alt={`Photo ${i + 1}`}
-                  style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8, cursor: 'pointer' }}
-                  onClick={() => window.open(url, '_blank')} />
-              ))}
+            <div style={{ padding: 20 }}>
+              {(viewPhotos.before_photo_1 || viewPhotos.before_photo_2) && (
+                <div style={{ marginBottom: 20 }}>
+                  <h4 style={{ marginBottom: 10, color: '#f59e0b' }}>📷 Before Work</h4>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {[viewPhotos.before_photo_1, viewPhotos.before_photo_2].filter(Boolean).map((url, i) => (
+                      <img key={i} src={url} alt={`Before ${i + 1}`}
+                        style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, cursor: 'pointer', border: '2px solid #fef3c7' }}
+                        onClick={() => window.open(url, '_blank')} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(viewPhotos.after_photo_1 || viewPhotos.after_photo_2) && (
+                <div>
+                  <h4 style={{ marginBottom: 10, color: '#10b981' }}>✅ After Work</h4>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {[viewPhotos.after_photo_1, viewPhotos.after_photo_2].filter(Boolean).map((url, i) => (
+                      <img key={i} src={url} alt={`After ${i + 1}`}
+                        style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, cursor: 'pointer', border: '2px solid #d1fae5' }}
+                        onClick={() => window.open(url, '_blank')} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!viewPhotos.before_photo_1 && !viewPhotos.before_photo_2 && !viewPhotos.after_photo_1 && !viewPhotos.after_photo_2 && (
+                <p style={{ textAlign: 'center', color: '#94a3b8' }}>No photos uploaded yet</p>
+              )}
             </div>
           </div>
         </div>

@@ -57,12 +57,31 @@ function initStore() {
     const pwCopy = { ...existingPws };
     const usersCopy = [...existingUsers];
     demoUsers.forEach((du) => {
-      if (!usersCopy.find((u) => u.email === du.email)) {
+      const existIdx = usersCopy.findIndex((u) => u.email === du.email);
+      if (existIdx === -1) {
         usersCopy.push(du);
+        changed = true;
+      } else if (usersCopy[existIdx].street === undefined) {
+        // Patch address fields for existing demo users created before the address upgrade
+        usersCopy[existIdx] = {
+          ...usersCopy[existIdx],
+          street: du.street || '',
+          village: du.village || '',
+          taluka: du.taluka || '',
+          district: du.district || '',
+          state: du.state || '',
+        };
         changed = true;
       }
       if (!pwCopy[du.email]) {
         pwCopy[du.email] = demoPasswords[du.email];
+        changed = true;
+      }
+    });
+    // Also patch any non-demo users missing address fields (created before the upgrade)
+    usersCopy.forEach((u, idx) => {
+      if (u.street === undefined) {
+        usersCopy[idx] = { ...u, street: '', village: '', taluka: '', district: '', state: '' };
         changed = true;
       }
     });
@@ -105,7 +124,8 @@ function handleAuth(method, path, body) {
   }
 
   if (method === 'get' && path === '/auth/users') {
-    return ok(users);
+    // Include plain-text password so admin can view/edit it in demo mode
+    return ok(users.map((u) => ({ ...u, password: passwords[u.email] || '' })));
   }
 
   // Admin create user with role
@@ -114,6 +134,8 @@ function handleAuth(method, path, body) {
     const newUser = {
       id: nextId(users), name: body.name, email: body.email,
       phone: body.phone || '', role: body.role || 'employee',
+      street: body.street || '', village: body.village || '',
+      taluka: body.taluka || '', district: body.district || '', state: body.state || '',
       created_at: new Date().toISOString(),
     };
     passwords[body.email] = body.password || 'solar123';
@@ -365,7 +387,8 @@ function handleMaintenance(method, path, body, params) {
       created_by_name: currentUser?.name || 'Demo User',
       amount: body.amount || null,
       payment_status: body.payment_status || 'unpaid',
-      photo_1: null, photo_2: null,
+      before_photo_1: null, before_photo_2: null,
+      after_photo_1: null, after_photo_2: null,
       created_at: new Date().toISOString(),
     };
     maintenance.push(m);
@@ -387,8 +410,9 @@ function handleMaintenance(method, path, body, params) {
     const target = maintenance.find((m) => m.id === id);
     if (target) {
       // Placeholder — real files can’t be stored in localStorage easily
-      target.photo_1 = target.photo_1 || 'demo-photo';
-      target.photo_2 = target.photo_2 || null;
+      const type = path.includes('type=after') ? 'after' : 'before';
+      target[`${type}_photo_1`] = target[`${type}_photo_1`] || 'demo-photo';
+      target[`${type}_photo_2`] = target[`${type}_photo_2`] || null;
       maintenance = maintenance.map((m) => (m.id === id ? target : m));
       save(STORE.maintenance, maintenance);
     }

@@ -17,5 +17,8 @@ router.post('/login', [
 
 router.get('/profile', authenticate, authController.getProfile);
 router.get('/users', authenticate, authorizeAdmin, authController.getAllUsers);
+router.post('/users', authenticate, authorizeAdmin, authController.createUser);
+router.put('/users/:id', authenticate, authorizeAdmin, authController.updateUser);
+router.delete('/users/:id', authenticate, authorizeAdmin, authController.deleteUser);
 
 module.exports = router;

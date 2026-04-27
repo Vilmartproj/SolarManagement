@@ -15,42 +15,42 @@ exports.createInvoice = async (req, res) => {
     // Generate invoice number: INV-YYYYMMDD-XXXX
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const [countResult] = await pool.query(
-      "SELECT COUNT(*) as count FROM invoices WHERE DATE(created_at) = CURDATE()"
+    const { rows: countResult } = await pool.query(
+      "SELECT COUNT(*) AS count FROM invoices WHERE created_at::date = CURRENT_DATE"
     );
-    const seq = String(countResult[0].count + 1).padStart(4, '0');
+    const seq = String(parseInt(countResult[0].count) + 1).padStart(4, '0');
     const invoiceNumber = `INV-${dateStr}-${seq}`;
 
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      await connection.beginTransaction();
+      await client.query('BEGIN');
 
-      const [result] = await connection.query(
+      const { rows: [inserted] } = await client.query(
         `INSERT INTO invoices (invoice_number, project_id, customer_name, customer_email,
           customer_address, subtotal, tax_rate, tax_amount, total_amount, due_date, notes, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
         [invoiceNumber, project_id, customer_name, customer_email,
           customer_address, subtotal, taxRate, taxAmount, totalAmount,
           due_date, notes, req.user.id]
       );
 
-      const invoiceId = result.insertId;
+      const invoiceId = inserted.id;
 
       for (const item of items) {
-        await connection.query(
+        await client.query(
           `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total_price)
-           VALUES (?, ?, ?, ?, ?)`,
+           VALUES ($1, $2, $3, $4, $5)`,
           [invoiceId, item.description, item.quantity, item.unit_price, item.quantity * item.unit_price]
         );
       }
 
-      await connection.commit();
+      await client.query('COMMIT');
       res.status(201).json({ message: 'Invoice created', invoiceId, invoiceNumber });
     } catch (err) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       throw err;
     } finally {
-      connection.release();
+      client.release();
     }
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -63,18 +63,20 @@ exports.getAllInvoices = async (req, res) => {
     let query = `SELECT i.*, p.project_name FROM invoices i
                  LEFT JOIN projects p ON i.project_id = p.id WHERE 1=1`;
     const params = [];
+    let idx = 1;
 
     if (status) {
-      query += ' AND i.status = ?';
+      query += ` AND i.status = $${idx++}`;
       params.push(status);
     }
     if (search) {
-      query += ' AND (i.invoice_number LIKE ? OR i.customer_name LIKE ?)';
+      query += ` AND (i.invoice_number ILIKE $${idx} OR i.customer_name ILIKE $${idx + 1})`;
       params.push(`%${search}%`, `%${search}%`);
+      idx += 2;
     }
 
     query += ' ORDER BY i.created_at DESC';
-    const [invoices] = await pool.query(query, params);
+    const { rows: invoices } = await pool.query(query, params);
     res.json(invoices);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -83,17 +85,17 @@ exports.getAllInvoices = async (req, res) => {
 
 exports.getInvoiceById = async (req, res) => {
   try {
-    const [invoices] = await pool.query(
+    const { rows: invoices } = await pool.query(
       `SELECT i.*, p.project_name FROM invoices i
-       LEFT JOIN projects p ON i.project_id = p.id WHERE i.id = ?`,
+       LEFT JOIN projects p ON i.project_id = p.id WHERE i.id = $1`,
       [req.params.id]
     );
     if (invoices.length === 0) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    const [items] = await pool.query(
-      'SELECT * FROM invoice_items WHERE invoice_id = ?',
+    const { rows: items } = await pool.query(
+      'SELECT * FROM invoice_items WHERE invoice_id = $1',
       [req.params.id]
     );
 
@@ -106,21 +108,22 @@ exports.getInvoiceById = async (req, res) => {
 exports.updateInvoiceStatus = async (req, res) => {
   try {
     const { status, paid_date } = req.body;
-    const updates = ['status = ?'];
+    const updates = ['status = $1'];
     const params = [status];
+    let idx = 2;
 
     if (status === 'paid' && paid_date) {
-      updates.push('paid_date = ?');
+      updates.push(`paid_date = $${idx++}`);
       params.push(paid_date);
     }
 
     params.push(req.params.id);
-    const [result] = await pool.query(
-      `UPDATE invoices SET ${updates.join(', ')} WHERE id = ?`,
+    const { rowCount } = await pool.query(
+      `UPDATE invoices SET ${updates.join(', ')} WHERE id = $${idx}`,
       params
     );
 
-    if (result.affectedRows === 0) {
+    if (rowCount === 0) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
     res.json({ message: 'Invoice status updated' });
@@ -131,8 +134,8 @@ exports.updateInvoiceStatus = async (req, res) => {
 
 exports.deleteInvoice = async (req, res) => {
   try {
-    const [result] = await pool.query('DELETE FROM invoices WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) {
+    const { rowCount } = await pool.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
     res.json({ message: 'Invoice deleted' });

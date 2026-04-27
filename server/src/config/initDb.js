@@ -6,22 +6,17 @@ async function initializeDatabase() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
-  const statements = schema
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
-
-  const connection = await pool.getConnection();
+  const client = await pool.connect();
   try {
-    for (const statement of statements) {
-      await connection.query(statement);
-    }
+    // Run the whole file as one block — it contains PL/pgSQL DO $$ blocks
+    // that cannot be naively split on semicolons.
+    await client.query(schema);
     console.log('Database initialized successfully');
   } catch (err) {
     console.error('Database initialization error:', err.message);
     throw err;
   } finally {
-    connection.release();
+    client.release();
   }
 }
 
