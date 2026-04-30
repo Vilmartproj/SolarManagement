@@ -1,44 +1,62 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const prisma = require('../config/prisma');
 
 exports.findUserByEmail = async (email) => {
-  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-  return rows;
+  const user = await prisma.users.findUnique({ where: { email } });
+  return user ? [user] : [];
 };
 
 exports.findUserByEmailExceptId = async (email, userId) => {
-  const { rows } = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, userId]);
-  return rows;
+  const user = await prisma.users.findFirst({
+    where: {
+      email,
+      id: { not: parseInt(userId, 10) }
+    },
+    select: { id: true }
+  });
+  return user ? [user] : [];
 };
 
 exports.registerUser = async (userData) => {
   const { name, email, password, role, phone } = userData;
   const hashedPassword = await bcrypt.hash(password, 10);
-  const { rows } = await pool.query(
-    'INSERT INTO users (name, email, password, role, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [name, email, hashedPassword, role || 'employee', phone]
-  );
-  return rows[0].id;
+  const user = await prisma.users.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: role || 'employee',
+      phone: phone || null
+    }
+  });
+  return user.id;
 };
 
 exports.createUser = async (userData) => {
   const { name, email, password, role, phone, street, village, taluka, district, state } = userData;
   const hashedPassword = await bcrypt.hash(password, 10);
-  const { rows } = await pool.query(
-    `INSERT INTO users (name, email, password, role, phone, street, village, taluka, district, state)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-    [name, email, hashedPassword, role || 'employee', phone || null,
-      street || null, village || null, taluka || null, district || null, state || null]
-  );
-  return rows[0].id;
+  const user = await prisma.users.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: role || 'employee',
+      phone: phone || null,
+      street: street || null,
+      village: village || null,
+      taluka: taluka || null,
+      district: district || null,
+      state: state || null
+    }
+  });
+  return user.id;
 };
 
 exports.loginUser = async (email, password) => {
-  const users = await exports.findUserByEmail(email);
-  if (users.length === 0) return null;
+  const user = await prisma.users.findUnique({ where: { email } });
+  if (!user) return null;
 
-  const user = users[0];
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return null;
 
@@ -52,41 +70,50 @@ exports.loginUser = async (email, password) => {
 };
 
 exports.getUserProfile = async (userId) => {
-  const { rows } = await pool.query(
-    'SELECT id, name, email, role, phone, street, village, taluka, district, state, created_at FROM users WHERE id = $1',
-    [userId]
-  );
-  return rows[0];
+  return prisma.users.findUnique({
+    where: { id: parseInt(userId, 10) },
+    select: {
+      id: true, name: true, email: true, role: true, phone: true,
+      street: true, village: true, taluka: true, district: true, state: true,
+      created_at: true
+    }
+  });
 };
 
 exports.getAllUsers = async () => {
-  const { rows } = await pool.query(
-    'SELECT id, name, email, role, phone, street, village, taluka, district, state, created_at FROM users ORDER BY created_at DESC'
-  );
-  return rows;
+  return prisma.users.findMany({
+    select: {
+      id: true, name: true, email: true, role: true, phone: true,
+      street: true, village: true, taluka: true, district: true, state: true,
+      created_at: true
+    },
+    orderBy: { created_at: 'desc' }
+  });
 };
 
 exports.updateUser = async (userId, userData) => {
   const { name, email, role, phone, street, village, taluka, district, state, password } = userData;
+  const data = {
+    name, email, role, phone: phone || null,
+    street: street || null, village: village || null,
+    taluka: taluka || null, district: district || null, state: state || null
+  };
+  
   if (password) {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query(
-      `UPDATE users SET name=$1, email=$2, role=$3, phone=$4, street=$5, village=$6,
-        taluka=$7, district=$8, state=$9, password=$10 WHERE id=$11`,
-      [name, email, role, phone || null, street || null, village || null,
-        taluka || null, district || null, state || null, hashedPassword, userId]
-    );
-  } else {
-    await pool.query(
-      `UPDATE users SET name=$1, email=$2, role=$3, phone=$4, street=$5, village=$6,
-        taluka=$7, district=$8, state=$9 WHERE id=$10`,
-      [name, email, role, phone || null, street || null, village || null,
-        taluka || null, district || null, state || null, userId]
-    );
+    data.password = await bcrypt.hash(password, 10);
   }
+
+  await prisma.users.update({
+    where: { id: parseInt(userId, 10) },
+    data
+  });
 };
 
 exports.deleteUser = async (userId) => {
-  const { rowCount } = await pool.query('DELETE FROM users WHERE id = $1', [userId]);
-  return rowCount;
+  try {
+    const user = await prisma.users.delete({ where: { id: parseInt(userId, 10) } });
+    return 1;
+  } catch (error) {
+    return 0;
+  }
 };

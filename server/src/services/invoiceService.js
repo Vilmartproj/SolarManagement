@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const prisma = require('../config/prisma');
 
 exports.createInvoice = async (invoiceData, userId) => {
   const {
@@ -11,104 +11,119 @@ exports.createInvoice = async (invoiceData, userId) => {
   const taxAmount = (subtotal * taxRate) / 100;
   const totalAmount = subtotal + taxAmount;
 
-  // Generate invoice number: INV-YYYYMMDD-XXXX
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const { rows: countResult } = await pool.query(
-    "SELECT COUNT(*) AS count FROM invoices WHERE created_at::date = CURRENT_DATE"
-  );
-  const seq = String(parseInt(countResult[0].count) + 1).padStart(4, '0');
+  
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  
+  const countToday = await prisma.invoices.count({
+    where: {
+      created_at: {
+        gte: todayStart
+      }
+    }
+  });
+
+  const seq = String(countToday + 1).padStart(4, '0');
   const invoiceNumber = `INV-${dateStr}-${seq}`;
 
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const { rows: [inserted] } = await client.query(
-      `INSERT INTO invoices (invoice_number, project_id, customer_name, customer_email,
-        customer_address, subtotal, tax_rate, tax_amount, total_amount, due_date, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-      [invoiceNumber, project_id, customer_name, customer_email,
-        customer_address, subtotal, taxRate, taxAmount, totalAmount,
-        due_date, notes, userId]
-    );
-
-    const invoiceId = inserted.id;
-
-    for (const item of items) {
-      await client.query(
-        `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total_price)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [invoiceId, item.description, item.quantity, item.unit_price, item.quantity * item.unit_price]
-      );
+  const invoice = await prisma.invoices.create({
+    data: {
+      invoice_number: invoiceNumber,
+      project_id: parseInt(project_id, 10),
+      customer_name,
+      customer_email,
+      customer_address,
+      subtotal,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      due_date: due_date ? new Date(due_date) : null,
+      notes,
+      created_by: userId ? parseInt(userId, 10) : null,
+      invoice_items: {
+        create: items.map(item => ({
+          description: item.description,
+          quantity: item.quantity ? parseInt(item.quantity, 10) : 1,
+          unit_price: parseFloat(item.unit_price),
+          total_price: (item.quantity || 1) * parseFloat(item.unit_price)
+        }))
+      }
     }
+  });
 
-    await client.query('COMMIT');
-    return { invoiceId, invoiceNumber };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  return { invoiceId: invoice.id, invoiceNumber };
 };
 
 exports.getAllInvoices = async (status, search) => {
-  let query = `SELECT i.*, p.project_name FROM invoices i
-               LEFT JOIN projects p ON i.project_id = p.id WHERE 1=1`;
-  const params = [];
-  let idx = 1;
-
-  if (status) {
-    query += ` AND i.status = $${idx++}`;
-    params.push(status);
-  }
+  const where = {};
+  if (status) where.status = status;
   if (search) {
-    query += ` AND (i.invoice_number ILIKE $${idx} OR i.customer_name ILIKE $${idx + 1})`;
-    params.push(`%${search}%`, `%${search}%`);
-    idx += 2;
+    where.OR = [
+      { invoice_number: { contains: search, mode: 'insensitive' } },
+      { customer_name: { contains: search, mode: 'insensitive' } }
+    ];
   }
 
-  query += ' ORDER BY i.created_at DESC';
-  const { rows } = await pool.query(query, params);
-  return rows;
+  const invoices = await prisma.invoices.findMany({
+    where,
+    include: {
+      projects: {
+        select: { project_name: true }
+      }
+    },
+    orderBy: { created_at: 'desc' }
+  });
+
+  return invoices.map(i => ({
+    ...i,
+    project_name: i.projects?.project_name
+  }));
 };
 
 exports.getInvoiceById = async (id) => {
-  const { rows: invoices } = await pool.query(
-    `SELECT i.*, p.project_name FROM invoices i
-     LEFT JOIN projects p ON i.project_id = p.id WHERE i.id = $1`,
-    [id]
-  );
-  if (invoices.length === 0) return null;
+  const invoice = await prisma.invoices.findUnique({
+    where: { id: parseInt(id, 10) },
+    include: {
+      projects: {
+        select: { project_name: true }
+      },
+      invoice_items: true
+    }
+  });
 
-  const { rows: items } = await pool.query(
-    'SELECT * FROM invoice_items WHERE invoice_id = $1',
-    [id]
-  );
+  if (!invoice) return null;
 
-  return { ...invoices[0], items };
+  return {
+    ...invoice,
+    project_name: invoice.projects?.project_name,
+    items: invoice.invoice_items
+  };
 };
 
 exports.updateInvoiceStatus = async (id, status, paid_date) => {
-  const updates = ['status = $1'];
-  const params = [status];
-  let idx = 2;
-
+  const data = { status };
   if (status === 'paid' && paid_date) {
-    updates.push(`paid_date = $${idx++}`);
-    params.push(paid_date);
+    data.paid_date = new Date(paid_date);
   }
 
-  params.push(id);
-  const { rowCount } = await pool.query(
-    `UPDATE invoices SET ${updates.join(', ')} WHERE id = $${idx}`,
-    params
-  );
-  return rowCount;
+  try {
+    await prisma.invoices.update({
+      where: { id: parseInt(id, 10) },
+      data
+    });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
 
 exports.deleteInvoice = async (id) => {
-  const { rowCount } = await pool.query('DELETE FROM invoices WHERE id = $1', [id]);
-  return rowCount;
+  try {
+    await prisma.invoices.delete({ where: { id: parseInt(id, 10) } });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };

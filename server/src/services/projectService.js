@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const prisma = require('../config/prisma');
 
 exports.createProject = async (projectData, userId) => {
   const {
@@ -8,47 +8,71 @@ exports.createProject = async (projectData, userId) => {
     start_date, expected_completion, notes,
   } = projectData;
 
-  const { rows } = await pool.query(
-    `INSERT INTO projects (project_name, customer_name, customer_email, customer_phone,
-      site_address, system_size_kw, panel_type, panel_count, inverter_type, inverter_count,
-      project_cost, status, start_date, expected_completion, notes, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`,
-    [project_name, customer_name, customer_email, customer_phone,
-      site_address, system_size_kw, panel_type, panel_count,
-      inverter_type, inverter_count, project_cost, status || 'planning',
-      start_date, expected_completion, notes, userId]
-  );
-  return rows[0].id;
+  const project = await prisma.projects.create({
+    data: {
+      project_name,
+      customer_name,
+      customer_email,
+      customer_phone,
+      site_address,
+      system_size_kw: system_size_kw ? parseFloat(system_size_kw) : 0,
+      panel_type,
+      panel_count: panel_count ? parseInt(panel_count, 10) : null,
+      inverter_type,
+      inverter_count: inverter_count ? parseInt(inverter_count, 10) : null,
+      project_cost: project_cost ? parseFloat(project_cost) : null,
+      status: status || 'planning',
+      start_date: start_date ? new Date(start_date) : null,
+      expected_completion: expected_completion ? new Date(expected_completion) : null,
+      notes,
+      created_by: userId ? parseInt(userId, 10) : null
+    }
+  });
+  return project.id;
 };
 
 exports.getAllProjects = async (status, search) => {
-  let query = `SELECT p.*, u.name as created_by_name FROM projects p
-               LEFT JOIN users u ON p.created_by = u.id WHERE 1=1`;
-  const params = [];
-  let idx = 1;
-
-  if (status) {
-    query += ` AND p.status = $${idx++}`;
-    params.push(status);
-  }
+  const where = {};
+  if (status) where.status = status;
   if (search) {
-    query += ` AND (p.project_name ILIKE $${idx} OR p.customer_name ILIKE $${idx + 1})`;
-    params.push(`%${search}%`, `%${search}%`);
-    idx += 2;
+    where.OR = [
+      { project_name: { contains: search, mode: 'insensitive' } },
+      { customer_name: { contains: search, mode: 'insensitive' } }
+    ];
   }
 
-  query += ' ORDER BY p.created_at DESC';
-  const { rows } = await pool.query(query, params);
-  return rows;
+  const projects = await prisma.projects.findMany({
+    where,
+    include: {
+      users: {
+        select: { name: true }
+      }
+    },
+    orderBy: { created_at: 'desc' }
+  });
+
+  return projects.map(p => ({
+    ...p,
+    created_by_name: p.users?.name
+  }));
 };
 
 exports.getProjectById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT p.*, u.name as created_by_name FROM projects p
-     LEFT JOIN users u ON p.created_by = u.id WHERE p.id = $1`,
-    [id]
-  );
-  return rows[0];
+  const project = await prisma.projects.findUnique({
+    where: { id: parseInt(id, 10) },
+    include: {
+      users: {
+        select: { name: true }
+      }
+    }
+  });
+
+  if (!project) return null;
+
+  return {
+    ...project,
+    created_by_name: project.users?.name
+  };
 };
 
 exports.updateProject = async (id, projectData) => {
@@ -59,38 +83,66 @@ exports.updateProject = async (id, projectData) => {
     start_date, expected_completion, actual_completion, notes,
   } = projectData;
 
-  const { rowCount } = await pool.query(
-    `UPDATE projects SET project_name=$1, customer_name=$2, customer_email=$3, customer_phone=$4,
-      site_address=$5, system_size_kw=$6, panel_type=$7, panel_count=$8, inverter_type=$9,
-      inverter_count=$10, project_cost=$11, status=$12, start_date=$13, expected_completion=$14,
-      actual_completion=$15, notes=$16 WHERE id=$17`,
-    [project_name, customer_name, customer_email, customer_phone,
-      site_address, system_size_kw, panel_type, panel_count,
-      inverter_type, inverter_count, project_cost, status,
-      start_date, expected_completion, actual_completion, notes, id]
-  );
-  return rowCount;
+  const data = {};
+  if (project_name !== undefined) data.project_name = project_name;
+  if (customer_name !== undefined) data.customer_name = customer_name;
+  if (customer_email !== undefined) data.customer_email = customer_email;
+  if (customer_phone !== undefined) data.customer_phone = customer_phone;
+  if (site_address !== undefined) data.site_address = site_address;
+  if (system_size_kw !== undefined) data.system_size_kw = parseFloat(system_size_kw);
+  if (panel_type !== undefined) data.panel_type = panel_type;
+  if (panel_count !== undefined) data.panel_count = panel_count ? parseInt(panel_count, 10) : null;
+  if (inverter_type !== undefined) data.inverter_type = inverter_type;
+  if (inverter_count !== undefined) data.inverter_count = inverter_count ? parseInt(inverter_count, 10) : null;
+  if (project_cost !== undefined) data.project_cost = project_cost ? parseFloat(project_cost) : null;
+  if (status !== undefined) data.status = status;
+  if (start_date !== undefined) data.start_date = start_date ? new Date(start_date) : null;
+  if (expected_completion !== undefined) data.expected_completion = expected_completion ? new Date(expected_completion) : null;
+  if (actual_completion !== undefined) data.actual_completion = actual_completion ? new Date(actual_completion) : null;
+  if (notes !== undefined) data.notes = notes;
+
+  try {
+    await prisma.projects.update({
+      where: { id: parseInt(id, 10) },
+      data
+    });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
 
 exports.deleteProject = async (id) => {
-  const { rowCount } = await pool.query('DELETE FROM projects WHERE id = $1', [id]);
-  return rowCount;
+  try {
+    await prisma.projects.delete({ where: { id: parseInt(id, 10) } });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
 
 exports.getDashboardStats = async () => {
-  const { rows: [tp] } = await pool.query('SELECT COUNT(*) AS count FROM projects');
-  const { rows: [ap] } = await pool.query("SELECT COUNT(*) AS count FROM projects WHERE status = 'in_progress'");
-  const { rows: [cp] } = await pool.query("SELECT COUNT(*) AS count FROM projects WHERE status = 'completed'");
-  const { rows: [tr] } = await pool.query("SELECT COALESCE(SUM(project_cost), 0) AS total FROM projects WHERE status = 'completed'");
-  const { rows: [pm] } = await pool.query("SELECT COUNT(*) AS count FROM maintenance_requests WHERE status IN ('pending', 'assigned')");
-  const { rows: [ls] } = await pool.query('SELECT COUNT(*) AS count FROM inventory WHERE quantity <= min_stock_level');
+  const totalProjects = await prisma.projects.count();
+  const activeProjects = await prisma.projects.count({ where: { status: 'in_progress' } });
+  const completedProjects = await prisma.projects.count({ where: { status: 'completed' } });
+  
+  const revenueResult = await prisma.projects.aggregate({
+    _sum: { project_cost: true },
+    where: { status: 'completed' }
+  });
+  
+  const pendingMaintenance = await prisma.maintenance_requests.count({
+    where: { status: { in: ['pending', 'assigned'] } }
+  });
+  
+  const lowStockItemsResult = await prisma.$queryRaw`SELECT COUNT(*)::int AS count FROM inventory WHERE quantity <= min_stock_level`;
 
   return {
-    totalProjects: Number(tp.count),
-    activeProjects: Number(ap.count),
-    completedProjects: Number(cp.count),
-    totalRevenue: Number(tr.total),
-    pendingMaintenance: Number(pm.count),
-    lowStockItems: Number(ls.count),
+    totalProjects,
+    activeProjects,
+    completedProjects,
+    totalRevenue: Number(revenueResult._sum.project_cost) || 0,
+    pendingMaintenance,
+    lowStockItems: Number(lowStockItemsResult[0].count),
   };
 };

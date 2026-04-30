@@ -1,31 +1,30 @@
-const pool = require('../config/db');
+const prisma = require('../config/prisma');
 
 exports.getAllItems = async (category, search, low_stock) => {
-  let query = 'SELECT * FROM inventory WHERE 1=1';
-  const params = [];
-  let idx = 1;
-
-  if (category) {
-    query += ` AND category = $${idx++}`;
-    params.push(category);
-  }
+  const where = {};
+  if (category) where.category = category;
   if (search) {
-    query += ` AND (item_name ILIKE $${idx} OR sku ILIKE $${idx + 1})`;
-    params.push(`%${search}%`, `%${search}%`);
-    idx += 2;
-  }
-  if (low_stock === 'true') {
-    query += ' AND quantity <= min_stock_level';
+    where.OR = [
+      { item_name: { contains: search, mode: 'insensitive' } },
+      { sku: { contains: search, mode: 'insensitive' } }
+    ];
   }
 
-  query += ' ORDER BY item_name ASC';
-  const { rows } = await pool.query(query, params);
-  return rows;
+  const items = await prisma.inventory.findMany({
+    where,
+    orderBy: { item_name: 'asc' }
+  });
+
+  if (low_stock === 'true') {
+    return items.filter(item => item.quantity <= item.min_stock_level);
+  }
+  return items;
 };
 
 exports.getItemById = async (id) => {
-  const { rows } = await pool.query('SELECT * FROM inventory WHERE id = $1', [id]);
-  return rows[0];
+  return prisma.inventory.findUnique({
+    where: { id: parseInt(id, 10) }
+  });
 };
 
 exports.createItem = async (itemData) => {
@@ -34,14 +33,20 @@ exports.createItem = async (itemData) => {
     unit_price, supplier, location, description,
   } = itemData;
 
-  const { rows } = await pool.query(
-    `INSERT INTO inventory (item_name, category, sku, quantity, min_stock_level,
-      unit_price, supplier, location, description)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-    [item_name, category, sku, quantity || 0, min_stock_level || 10,
-      unit_price, supplier, location, description]
-  );
-  return rows[0].id;
+  const item = await prisma.inventory.create({
+    data: {
+      item_name,
+      category,
+      sku,
+      quantity: quantity !== undefined ? parseInt(quantity, 10) : 0,
+      min_stock_level: min_stock_level !== undefined ? parseInt(min_stock_level, 10) : 10,
+      unit_price: unit_price !== undefined ? parseFloat(unit_price) : null,
+      supplier,
+      location,
+      description
+    }
+  });
+  return item.id;
 };
 
 exports.updateItem = async (id, itemData) => {
@@ -50,25 +55,50 @@ exports.updateItem = async (id, itemData) => {
     unit_price, supplier, location, description,
   } = itemData;
 
-  const { rowCount } = await pool.query(
-    `UPDATE inventory SET item_name=$1, category=$2, sku=$3, quantity=$4, min_stock_level=$5,
-      unit_price=$6, supplier=$7, location=$8, description=$9 WHERE id=$10`,
-    [item_name, category, sku, quantity, min_stock_level,
-      unit_price, supplier, location, description, id]
-  );
-  return rowCount;
+  const data = {};
+  if (item_name !== undefined) data.item_name = item_name;
+  if (category !== undefined) data.category = category;
+  if (sku !== undefined) data.sku = sku;
+  if (quantity !== undefined) data.quantity = parseInt(quantity, 10);
+  if (min_stock_level !== undefined) data.min_stock_level = parseInt(min_stock_level, 10);
+  if (unit_price !== undefined) data.unit_price = parseFloat(unit_price);
+  if (supplier !== undefined) data.supplier = supplier;
+  if (location !== undefined) data.location = location;
+  if (description !== undefined) data.description = description;
+
+  try {
+    await prisma.inventory.update({
+      where: { id: parseInt(id, 10) },
+      data
+    });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
 
 exports.updateStock = async (id, quantity, operation) => {
-  const operator = operation === 'subtract' ? '-' : '+';
-  const { rowCount } = await pool.query(
-    `UPDATE inventory SET quantity = quantity ${operator} $1 WHERE id = $2`,
-    [Math.abs(quantity), id]
-  );
-  return rowCount;
+  const amount = Math.abs(parseInt(quantity, 10));
+  try {
+    await prisma.inventory.update({
+      where: { id: parseInt(id, 10) },
+      data: {
+        quantity: operation === 'subtract' 
+          ? { decrement: amount } 
+          : { increment: amount }
+      }
+    });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
 
 exports.deleteItem = async (id) => {
-  const { rowCount } = await pool.query('DELETE FROM inventory WHERE id = $1', [id]);
-  return rowCount;
+  try {
+    await prisma.inventory.delete({ where: { id: parseInt(id, 10) } });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };

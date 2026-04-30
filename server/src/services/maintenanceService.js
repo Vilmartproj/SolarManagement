@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const prisma = require('../config/prisma');
 
 exports.createRequest = async (requestData, userId) => {
   const {
@@ -7,78 +7,84 @@ exports.createRequest = async (requestData, userId) => {
     amount, payment_status,
   } = requestData;
 
-  const { rows } = await pool.query(
-    `INSERT INTO maintenance_requests (project_id, requested_by, issue_type, description,
-      priority, assigned_to, electrician_name, electrician_phone, scheduled_date, amount, payment_status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-    [project_id || null, userId, issue_type, description,
-      priority || 'medium', assigned_to || null, electrician_name, electrician_phone,
-      scheduled_date || null, amount || null, payment_status || 'unpaid']
-  );
-  return rows[0].id;
+  const request = await prisma.maintenance_requests.create({
+    data: {
+      project_id: project_id ? parseInt(project_id, 10) : null,
+      requested_by: parseInt(userId, 10),
+      issue_type,
+      description,
+      priority: priority || 'medium',
+      assigned_to: assigned_to || null,
+      electrician_name,
+      electrician_phone,
+      scheduled_date: scheduled_date ? new Date(scheduled_date) : null,
+      amount: amount ? parseFloat(amount) : null,
+      payment_status: payment_status || 'unpaid'
+    }
+  });
+  return request.id;
 };
 
 exports.getAllRequests = async (filters, user) => {
   const { status, priority, assigned_to } = filters;
-  let query = `SELECT m.*, p.project_name, u.name as requested_by_name
-               FROM maintenance_requests m
-               LEFT JOIN projects p ON m.project_id = p.id
-               LEFT JOIN users u ON m.requested_by = u.id WHERE 1=1`;
-  const params = [];
-  let idx = 1;
+  const where = {};
+  
+  if (status) where.status = status;
+  if (priority) where.priority = priority;
+  if (assigned_to) where.assigned_to = assigned_to;
 
-  if (status) {
-    query += ` AND m.status = $${idx++}`;
-    params.push(status);
-  }
-  if (priority) {
-    query += ` AND m.priority = $${idx++}`;
-    params.push(priority);
-  }
-  if (assigned_to) {
-    query += ` AND m.assigned_to = $${idx++}`;
-    params.push(assigned_to);
-  }
-
-  // Technicians see requests assigned to them; other non-admins see their own requests
   if (user.role !== 'admin') {
     if (user.role === 'electrician' || user.role === 'dwcra') {
-      query += ` AND m.electrician_name = $${idx++}`;
-      params.push(user.name);
+      where.electrician_name = user.name;
     } else {
-      query += ` AND m.requested_by = $${idx++}`;
-      params.push(user.id);
+      where.requested_by = parseInt(user.id, 10);
     }
   }
 
-  query += ' ORDER BY m.created_at DESC';
-  const { rows } = await pool.query(query, params);
-  return rows;
+  const requests = await prisma.maintenance_requests.findMany({
+    where,
+    include: {
+      projects: { select: { project_name: true } },
+      users: { select: { name: true } }
+    },
+    orderBy: { created_at: 'desc' }
+  });
+
+  return requests.map(r => ({
+    ...r,
+    project_name: r.projects?.project_name,
+    requested_by_name: r.users?.name
+  }));
 };
 
 exports.getRequestById = async (id) => {
-  const { rows } = await pool.query(
-    `SELECT m.*, p.project_name, u.name as requested_by_name
-     FROM maintenance_requests m
-     LEFT JOIN projects p ON m.project_id = p.id
-     LEFT JOIN users u ON m.requested_by = u.id WHERE m.id = $1`,
-    [id]
-  );
-  return rows[0];
+  const request = await prisma.maintenance_requests.findUnique({
+    where: { id: parseInt(id, 10) },
+    include: {
+      projects: { select: { project_name: true } },
+      users: { select: { name: true } }
+    }
+  });
+
+  if (!request) return null;
+
+  return {
+    ...request,
+    project_name: request.projects?.project_name,
+    requested_by_name: request.users?.name
+  };
 };
 
 exports.updateRequest = async (id, requestData, user) => {
+  const requestId = parseInt(id, 10);
+  const record = await prisma.maintenance_requests.findUnique({ where: { id: requestId } });
+  if (!record) return { error: 'Request not found', status: 404 };
+
   if (user.role !== 'admin') {
-    const { rows } = await pool.query(
-      'SELECT requested_by, electrician_name FROM maintenance_requests WHERE id = $1',
-      [id]
-    );
-    if (rows.length === 0) return { error: 'Request not found', status: 404 };
-    const record = rows[0];
     const isTechAssigned =
       (user.role === 'electrician' || user.role === 'dwcra') &&
       record.electrician_name === user.name;
-    if (!isTechAssigned && record.requested_by !== user.id) {
+    if (!isTechAssigned && record.requested_by !== parseInt(user.id, 10)) {
       return { error: 'Access denied', status: 403 };
     }
   }
@@ -91,37 +97,45 @@ exports.updateRequest = async (id, requestData, user) => {
     before_photo_1, before_photo_2, after_photo_1, after_photo_2,
   } = requestData;
 
-  const { rowCount } = await pool.query(
-    `UPDATE maintenance_requests SET project_id=$1, issue_type=$2, description=$3,
-      status=$4, assigned_to=$5, electrician_name=$6,
-      electrician_phone=$7, scheduled_date=$8, completed_date=$9, resolution_notes=$10, priority=$11,
-      amount=$12, payment_status=$13,
-      before_photo_1=COALESCE($14, before_photo_1), before_photo_2=COALESCE($15, before_photo_2),
-      after_photo_1=COALESCE($16, after_photo_1), after_photo_2=COALESCE($17, after_photo_2)
-     WHERE id=$18`,
-    [project_id || null, issue_type, description,
-      status, assigned_to || null, electrician_name, electrician_phone,
-      scheduled_date || null, completed_date || null, resolution_notes, priority,
-      amount || null, payment_status || 'unpaid',
-      before_photo_1 || null, before_photo_2 || null,
-      after_photo_1 || null, after_photo_2 || null,
-      id]
-  );
+  const data = {};
+  if (project_id !== undefined) data.project_id = project_id ? parseInt(project_id, 10) : null;
+  if (issue_type !== undefined) data.issue_type = issue_type;
+  if (description !== undefined) data.description = description;
+  if (status !== undefined) data.status = status;
+  if (assigned_to !== undefined) data.assigned_to = assigned_to || null;
+  if (electrician_name !== undefined) data.electrician_name = electrician_name;
+  if (electrician_phone !== undefined) data.electrician_phone = electrician_phone;
+  if (scheduled_date !== undefined) data.scheduled_date = scheduled_date ? new Date(scheduled_date) : null;
+  if (completed_date !== undefined) data.completed_date = completed_date ? new Date(completed_date) : null;
+  if (resolution_notes !== undefined) data.resolution_notes = resolution_notes;
+  if (priority !== undefined) data.priority = priority;
+  if (amount !== undefined) data.amount = amount ? parseFloat(amount) : null;
+  if (payment_status !== undefined) data.payment_status = payment_status;
+  if (before_photo_1 !== undefined) data.before_photo_1 = before_photo_1;
+  if (before_photo_2 !== undefined) data.before_photo_2 = before_photo_2;
+  if (after_photo_1 !== undefined) data.after_photo_1 = after_photo_1;
+  if (after_photo_2 !== undefined) data.after_photo_2 = after_photo_2;
 
-  if (rowCount === 0) return { error: 'Request not found', status: 404 };
-  return { success: true };
+  try {
+    await prisma.maintenance_requests.update({
+      where: { id: requestId },
+      data
+    });
+    return { success: true };
+  } catch (err) {
+    return { error: 'Request not found', status: 404 };
+  }
 };
 
 exports.uploadPhotos = async (id, type, files, user) => {
+  const requestId = parseInt(id, 10);
+  const record = await prisma.maintenance_requests.findUnique({ where: { id: requestId } });
+  if (!record) return { error: 'Request not found', status: 404 };
+
   if (user.role !== 'admin') {
-    const { rows } = await pool.query(
-      'SELECT electrician_name FROM maintenance_requests WHERE id = $1',
-      [id]
-    );
-    if (rows.length === 0) return { error: 'Request not found', status: 404 };
     const isTechAssigned =
       (user.role === 'electrician' || user.role === 'dwcra') &&
-      rows[0].electrician_name === user.name;
+      record.electrician_name === user.name;
     if (!isTechAssigned) return { error: 'Access denied', status: 403 };
   }
 
@@ -133,28 +147,34 @@ exports.uploadPhotos = async (id, type, files, user) => {
     return { error: 'No photos uploaded', status: 400 };
   }
 
-  const col1 = `${type}_photo_1`;
-  const col2 = `${type}_photo_2`;
-  const p1 = files[0] ? `/uploads/maintenance/${files[0].filename}` : null;
-  const p2 = files[1] ? `/uploads/maintenance/${files[1].filename}` : null;
+  const p1 = files[0] ? `/uploads/maintenance/${files[0].filename}` : undefined;
+  const p2 = files[1] ? `/uploads/maintenance/${files[1].filename}` : undefined;
 
-  const updates = [];
-  const params = [];
-  let idx = 1;
-  if (p1) { updates.push(`${col1} = $${idx++}`); params.push(p1); }
-  if (p2) { updates.push(`${col2} = $${idx++}`); params.push(p2); }
-  params.push(id);
+  const data = {};
+  if (type === 'before') {
+    if (p1) data.before_photo_1 = p1;
+    if (p2) data.before_photo_2 = p2;
+  } else {
+    if (p1) data.after_photo_1 = p1;
+    if (p2) data.after_photo_2 = p2;
+  }
 
-  const { rowCount } = await pool.query(
-    `UPDATE maintenance_requests SET ${updates.join(', ')} WHERE id = $${idx}`,
-    params
-  );
-
-  if (rowCount === 0) return { error: 'Request not found', status: 404 };
-  return { p1, p2 };
+  try {
+    await prisma.maintenance_requests.update({
+      where: { id: requestId },
+      data
+    });
+    return { p1: p1 || null, p2: p2 || null };
+  } catch (err) {
+    return { error: 'Update failed', status: 500 };
+  }
 };
 
 exports.deleteRequest = async (id) => {
-  const { rowCount } = await pool.query('DELETE FROM maintenance_requests WHERE id = $1', [id]);
-  return rowCount;
+  try {
+    await prisma.maintenance_requests.delete({ where: { id: parseInt(id, 10) } });
+    return 1;
+  } catch (err) {
+    return 0;
+  }
 };
