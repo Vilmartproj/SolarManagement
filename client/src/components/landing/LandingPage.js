@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo, { LogoEditButton } from '../shared/Logo';
+import Login from '../auth/Login';
 import './LandingPage.css';
 
 const STORAGE_KEY = 'solart_landing_content';
@@ -158,13 +159,14 @@ function ListEditor({ items, fields, onChange }) {
   );
 }
 
-export default function LandingPage() {
+export default function LandingPage({ initialShowLogin = false }) {
   const { user, logout } = useAuth();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [content, setContent] = useState(loadContent);
   const [editing, setEditing] = useState(null); // which section is being edited
   const [draft, setDraft] = useState(null);     // draft copy while editing
+  const [showLoginDrawer, setShowLoginDrawer] = useState(initialShowLogin);
 
   const isLoggedIn = !!user;
   const isAdmin = user?.role === 'admin';
@@ -231,9 +233,13 @@ export default function LandingPage() {
                 {item.label}
               </a>
             ))}
-            <Link to={user ? '/dashboard' : '/login'} className="nav-cta-btn">
-              {user ? 'Dashboard' : 'Login / Register'}
-            </Link>
+            {user ? (
+              <Link to="/dashboard" className="nav-cta-btn">Dashboard</Link>
+            ) : (
+              <button className="nav-cta-btn" onClick={() => { setMobileMenu(false); setShowLoginDrawer(true); }}>
+                Login / Register
+              </button>
+            )}
             {user && (
               <button className="nav-logout-btn" onClick={handleLogout}>
                 🚪 Logout
@@ -266,9 +272,15 @@ export default function LandingPage() {
           <h1>{content.hero.title}</h1>
           <p>{content.hero.subtitle}</p>
           <div className="hero-buttons">
-            <Link to={user ? '/projects' : '/login'} className="btn-landing btn-landing-primary">
-              Get Free Quote →
-            </Link>
+            {user ? (
+              <Link to="/projects" className="btn-landing btn-landing-primary">
+                Get Free Quote →
+              </Link>
+            ) : (
+              <button onClick={() => setShowLoginDrawer(true)} className="btn-landing btn-landing-primary">
+                Get Free Quote →
+              </button>
+            )}
             <a href="#services" className="btn-landing btn-landing-outline"
               onClick={(e) => { e.preventDefault(); scrollTo('#services'); }}>
               Our Services
@@ -416,12 +428,17 @@ export default function LandingPage() {
             {content.contact.subtitle}
           </p>
           <div className="cta-buttons">
-            <Link to={user ? '/projects' : '/login'} className="btn-landing btn-landing-white">
-              Start Your Project →
-            </Link>
-            <Link to={user ? '/maintenance' : '/login'} className="btn-landing btn-landing-outline-white">
-              Request Maintenance
-            </Link>
+            {user ? (
+              <>
+                <Link to="/projects" className="btn-landing btn-landing-white">Start Your Project →</Link>
+                <Link to="/maintenance" className="btn-landing btn-landing-outline-white">Request Maintenance</Link>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setShowLoginDrawer(true)} className="btn-landing btn-landing-white">Start Your Project →</button>
+                <button onClick={() => setShowLoginDrawer(true)} className="btn-landing btn-landing-outline-white">Request Maintenance</button>
+              </>
+            )}
           </div>
           <div className="cta-contact-info">
             <span>📞 {content.contact.phone}</span>
@@ -448,10 +465,10 @@ export default function LandingPage() {
             </div>
             <div>
               <h4>Portal</h4>
-              <Link to="/login">Employee Login</Link>
-              <Link to="/login">Admin Login</Link>
-              <Link to={user ? '/maintenance' : '/login'}>Maintenance Request</Link>
-              <Link to={user ? '/projects' : '/login'}>Submit Project</Link>
+              <button onClick={() => user ? navigate('/dashboard') : setShowLoginDrawer(true)} style={{background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left', marginBottom: '8px'}}>Employee Login</button>
+              <button onClick={() => user ? navigate('/dashboard') : setShowLoginDrawer(true)} style={{background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left', marginBottom: '8px'}}>Admin Login</button>
+              <button onClick={() => user ? navigate('/maintenance') : setShowLoginDrawer(true)} style={{background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left', marginBottom: '8px'}}>Maintenance Request</button>
+              <button onClick={() => user ? navigate('/projects') : setShowLoginDrawer(true)} style={{background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left', marginBottom: '8px'}}>Submit Project</button>
             </div>
             <div>
               <h4>Contact</h4>
@@ -604,6 +621,9 @@ export default function LandingPage() {
           </label>
         </EditModal>
       )}
+
+      {/* ===== LOGIN DRAWER ===== */}
+      {showLoginDrawer && <Login onClose={() => setShowLoginDrawer(false)} />}
     </div>
   );
 }

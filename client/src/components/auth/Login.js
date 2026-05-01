@@ -3,8 +3,9 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../shared/Logo';
 
-export default function Login() {
+export default function Login({ onClose }) {
   const [isRegister, setIsRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -46,89 +47,89 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="sun-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}><Logo size={100} /></div>
-        <h1 onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Cheriesh Power Technologies</h1>
-        <p className="subtitle">{isRegister ? 'Create your account' : 'Sign in to your account'}</p>
+    <div className="login-sidebar-overlay" onClick={onClose}>
+      <div className="login-sidebar-drawer glass-panel" onClick={(e) => e.stopPropagation()}>
+        <button className="login-close-btn" onClick={onClose} aria-label="Close">✕</button>
 
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
+        <div className="login-header">
+          <div className="sun-logo pulse-animation" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <Logo size={80} />
+          </div>
+          <h1 onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Cheriesh Power Technologies</h1>
+        </div>
+        <p className="subtitle">{isRegister ? 'Create your account' : 'Welcome back! Sign in to continue.'}</p>
 
-        <form onSubmit={handleSubmit}>
+        {error && <div className="error-message slide-in">{error}</div>}
+        {success && <div className="success-message slide-in">{success}</div>}
+
+        <form onSubmit={handleSubmit} className="login-form">
           {isRegister && (
-            <div className="form-group">
-              <label>Full Name</label>
+            <div className="form-group floating-group">
               <input
-                type="text" name="name" className="form-control"
+                type="text" name="name" id="name" className="form-control float-input"
                 value={form.name} onChange={handleChange} required
-                placeholder="Enter your full name"
+                placeholder=" "
               />
+              <label htmlFor="name" className="float-label">Full Name</label>
             </div>
           )}
 
-          <div className="form-group">
-            <label>Email Address</label>
+          <div className="form-group floating-group">
             <input
-              type="email" name="email" className="form-control"
+              type="email" name="email" id="email" className="form-control float-input"
               value={form.email} onChange={handleChange} required
-              placeholder="Enter your email"
+              placeholder=" "
             />
+            <label htmlFor="email" className="float-label">Email Address</label>
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
+          <div className="form-group floating-group">
             <input
-              type="password" name="password" className="form-control"
+              type={showPassword ? "text" : "password"} name="password" id="password" className="form-control float-input"
               value={form.password} onChange={handleChange} required
-              minLength={6} placeholder="Enter your password"
+              minLength={6} placeholder=" "
             />
+            <label htmlFor="password" className="float-label">Password</label>
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              )}
+            </button>
           </div>
 
           {isRegister && (
-            <div className="form-group">
-              <label>Phone Number</label>
+            <div className="form-group floating-group">
               <input
-                type="tel" name="phone" className="form-control"
+                type="tel" name="phone" id="phone" className="form-control float-input"
                 value={form.phone} onChange={handleChange}
-                placeholder="Enter your phone number"
+                placeholder=" "
               />
+              <label htmlFor="phone" className="float-label">Phone Number</label>
             </div>
           )}
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 8 }}>
-            {isRegister ? 'Register' : 'Login'}
+          <button type="submit" className="btn btn-primary btn-glow" style={{ width: '100%', marginTop: 16 }}>
+            {isRegister ? 'Create Account' : 'Sign In'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
-          {isRegister ? 'Already have an account?' : ''}{' '}
-          {isRegister && (
-            <button
-              onClick={() => { setIsRegister(false); setError(''); setSuccess(''); }}
-              style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontWeight: 600 }}
-            >
-              Login
-            </button>
-          )}
+        <p className="login-footer-text">
+          {isRegister ? 'Already have an account?' : 'Need an account?'}{' '}
+          <button
+            type="button"
+            onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
+            className="toggle-auth-btn"
+          >
+            {isRegister ? 'Log In' : 'Register'}
+          </button>
         </p>
-
-        {!isRegister && (
-          <div style={{
-            marginTop: 20, padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0',
-            borderRadius: 10, fontSize: 13, color: '#166534',
-          }}>
-            <strong style={{ display: 'block', marginBottom: 8 }}>Demo Credentials</strong>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span><b>Admin:</b> admin@solar.com / admin123</span>
-              <span><b>Developer:</b> dev@solar.com / dev123</span>
-              <span><b>Employee:</b> ravi@solar.com / ravi123</span>
-              <span><b>Employee:</b> sneha@solar.com / sneha123</span>
-              <span><b>Electrician:</b> sunil@solar.com / sunil123</span>
-              <span><b>DWCRA:</b> dwcra@solar.com / dwcra123</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

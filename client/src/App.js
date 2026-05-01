@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout, { AdminRoute } from './components/shared/Layout';
 import LandingPage from './components/landing/LandingPage';
-import Login from './components/auth/Login';
 import Dashboard from './components/admin/Dashboard';
 import Projects from './components/employee/Projects';
 import Invoices from './components/admin/Invoices';
@@ -18,7 +17,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LandingPage initialShowLogin={true} />} />
 
           {/* Protected routes (any authenticated user) */}
           <Route element={<Layout />}>
