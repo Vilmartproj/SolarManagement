@@ -9,7 +9,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
-const initializeDatabase = require('./config/initDb');
+const prisma = require('./config/prisma');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,7 +35,8 @@ app.get('/api/health', (req, res) => {
 // Start server
 async function start() {
   try {
-    await initializeDatabase();
+    await prisma.$connect();
+    console.log('Connected to the database via Prisma');
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });

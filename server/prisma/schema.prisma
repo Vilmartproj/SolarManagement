@@ -1,0 +1,194 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model inventory {
+  id              Int                @id @default(autoincrement())
+  item_name       String             @db.VarChar(200)
+  category        inventory_category
+  sku             String?            @unique @db.VarChar(100)
+  quantity        Int                @default(0)
+  min_stock_level Int                @default(10)
+  unit_price      Decimal?           @db.Decimal(12, 2)
+  supplier        String?            @db.VarChar(200)
+  location        String?            @db.VarChar(200)
+  description     String?
+  created_at      DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime           @default(now()) @db.Timestamptz(6)
+}
+
+model invoice_items {
+  id          Int      @id @default(autoincrement())
+  invoice_id  Int
+  description String   @db.VarChar(255)
+  quantity    Int      @default(1)
+  unit_price  Decimal  @db.Decimal(12, 2)
+  total_price Decimal  @db.Decimal(12, 2)
+  invoices    invoices @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model invoices {
+  id               Int             @id @default(autoincrement())
+  invoice_number   String          @unique @db.VarChar(50)
+  project_id       Int
+  customer_name    String          @db.VarChar(150)
+  customer_email   String?         @db.VarChar(150)
+  customer_address String?
+  subtotal         Decimal         @db.Decimal(12, 2)
+  tax_rate         Decimal         @default(18.00) @db.Decimal(5, 2)
+  tax_amount       Decimal         @db.Decimal(12, 2)
+  total_amount     Decimal         @db.Decimal(12, 2)
+  status           invoice_status  @default(draft)
+  due_date         DateTime?       @db.Date
+  paid_date        DateTime?       @db.Date
+  notes            String?
+  created_by       Int?
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime        @default(now()) @db.Timestamptz(6)
+  invoice_items    invoice_items[]
+  users            users?          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  projects         projects        @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model maintenance_requests {
+  id                Int                @id @default(autoincrement())
+  project_id        Int?
+  requested_by      Int
+  issue_type        issue_type
+  description       String
+  priority          priority_level     @default(medium)
+  status            maintenance_status @default(pending)
+  assigned_to       assigned_to_type?
+  electrician_name  String?            @db.VarChar(150)
+  electrician_phone String?            @db.VarChar(20)
+  scheduled_date    DateTime?          @db.Date
+  completed_date    DateTime?          @db.Date
+  resolution_notes  String?
+  amount            Decimal?           @db.Decimal(12, 2)
+  payment_status    payment_status     @default(unpaid)
+  before_photo_1    String?            @db.VarChar(500)
+  before_photo_2    String?            @db.VarChar(500)
+  after_photo_1     String?            @db.VarChar(500)
+  after_photo_2     String?            @db.VarChar(500)
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime           @default(now()) @db.Timestamptz(6)
+  projects          projects?          @relation(fields: [project_id], references: [id], onUpdate: NoAction)
+  users             users              @relation(fields: [requested_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model projects {
+  id                   Int                    @id @default(autoincrement())
+  project_name         String                 @db.VarChar(200)
+  customer_name        String                 @db.VarChar(150)
+  customer_email       String?                @db.VarChar(150)
+  customer_phone       String?                @db.VarChar(20)
+  site_address         String
+  system_size_kw       Decimal                @db.Decimal(10, 2)
+  panel_type           String?                @db.VarChar(100)
+  panel_count          Int?
+  inverter_type        String?                @db.VarChar(100)
+  inverter_count       Int?
+  project_cost         Decimal?               @db.Decimal(12, 2)
+  status               project_status         @default(planning)
+  start_date           DateTime?              @db.Date
+  expected_completion  DateTime?              @db.Date
+  actual_completion    DateTime?              @db.Date
+  notes                String?
+  created_by           Int?
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  invoices             invoices[]
+  maintenance_requests maintenance_requests[]
+  users                users?                 @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+}
+
+model users {
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @db.VarChar(100)
+  email                String                 @unique @db.VarChar(150)
+  password             String                 @db.VarChar(255)
+  role                 user_role              @default(employee)
+  phone                String?                @db.VarChar(20)
+  street               String?                @db.VarChar(255)
+  village              String?                @db.VarChar(100)
+  taluka               String?                @db.VarChar(100)
+  district             String?                @db.VarChar(100)
+  state                String?                @db.VarChar(100)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  invoices             invoices[]
+  maintenance_requests maintenance_requests[]
+  projects             projects[]
+}
+
+enum assigned_to_type {
+  local_electrician
+  dwcra_group
+}
+
+enum inventory_category {
+  panel
+  inverter
+  battery
+  mounting
+  wire
+  connector
+  other
+}
+
+enum invoice_status {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+enum issue_type {
+  panel_cleaning
+  inverter_repair
+  wiring_issue
+  performance_drop
+  physical_damage
+  other
+}
+
+enum maintenance_status {
+  pending
+  assigned
+  in_progress
+  completed
+  cancelled
+}
+
+enum payment_status {
+  unpaid
+  paid
+}
+
+enum priority_level {
+  low
+  medium
+  high
+  urgent
+}
+
+enum project_status {
+  planning
+  in_progress
+  completed
+  on_hold
+  cancelled
+}
+
+enum user_role {
+  admin
+  employee
+  electrician
+  dwcra
+}
